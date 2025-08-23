@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduDashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <button id="helpBtn" class="absolute top-4 left-4 text-blue-600 hover:text-blue-800 flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 14h.01M16 10h.01M12 18h.01M12 6h.01" />
+        </svg>
+        <span class="text-lg font-medium">تعليمات</span>
+    </button>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <div class="w-full">
+            <header class="text-center mb-4">
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-700">لوحة تحليليـة للبيانات التعليميـة</h1>
+                <p class="text-slate-500 mt-2">تحليل فوري تفاعلي لنتائج الطلاب وأدائهم في مختلف المواد والمراحل الدراسية.</p>
+            </header>
+        </div>
+
+    <div class="sticky top-6 right-12 z-50 flex flex-col items-end gap-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 border border-slate-200" style="max-width: 300px;">
+    <label class="block text-teal-700 mb-1">يرجى رفع ملف درجات الطلاب هنا لتحليلها</label>
+    <div class="relative w-full">
+        <input type="file" id="csvUpload" accept=".csv" class="block text-sm text-slate-500 mb-2 cursor-pointer w-full border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+        <div id="csvStatusMsg" class="mt-2 w-full text-center text-sm rounded-lg py-2 transition-all duration-300" style="display:none;"></div>
+    <div id="csvTooltip" class="absolute right-0 mt-2 w-80 bg-slate-100 rounded-lg p-3 text-xs text-slate-600 shadow-lg opacity-0 transition-opacity pointer-events-none border border-teal-200" style="white-space:normal;">
+            <span class="font-semibold text-teal-700">ملاحظة مهمة:</span>  يجب أن يكون نوع الملف اكسل بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span> وتكون البيانات نظيفة لا يوجد فيها اخطاء، ويكون لكل عمود عنوان واضح، في أول صف مثل (اسم الطالب، الصف، القسم،،النسبة،اسماء المواد الدراسية ..) حتى تتم عملية التحليل بنجاح..وشكراً<br>
+        </div>
+        </div>
+    </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div class="md:col-span-1">
+                    <h2 class="text-lg text-center font-semibold text-slate-600">خيارات التصفية</h2>
+                </div>
+                <div class="md:col-span-2 flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="gradeFilter" class="block text-sm font-medium text-slate-500 mb-1">الصف الدراسي</label>
+                        <button id="gradeFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="gradeFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="gradeFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="sectionFilter" class="block text-sm font-medium text-slate-500 mb-1">القسم</label>
+                        <button id="sectionFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="sectionFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="sectionFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="levelFilter" class="block text-sm font-medium text-slate-500 mb-1">المستوى</label>
+                        <select id="levelFilter" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                            <option value="الكل">الكل</option>
+                            <option value="top10">أعلى عشرة</option>
+                            <option value="bottom10">أدنى عشرة</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="categoryFilter" class="block text-sm font-medium text-slate-500 mb-1">فئة التقدير</label>
+                        <button id="categoryFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="categoryFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="categoryFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="ممتاز" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500">
+                                    <span class="mr-2 text-sm text-slate-700">ممتاز</span>
+                                </label>
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="جيد جداً" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500">
+                                    <span class="mr-2 text-sm text-slate-700">جيد جداً</span>
+                                </label>
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="جيد" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500">
+                                    <span class="mr-2 text-sm text-slate-700">جيد</span>
+                                </label>
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="مقبول" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500">
+                                    <span class="mr-2 text-sm text-slate-700">مقبول</span>
+                                </label>
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="ضعيف" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500">
+                                    <span class="mr-2 text-sm text-slate-700">ضعيف</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="subjectFilter" class="block text-sm font-medium text-slate-500 mb-1">المادة الدراسية</label>
+                        <button id="subjectFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="subjectFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="subjectFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="timeFilter" class="block text-sm font-medium text-slate-500 mb-1">نوع التحليل</label>
+                        <button id="timeFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="timeFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="timeFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="resetFiltersBtn" class="bg-slate-100 text-red-500 py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors shadow flex items-center gap-1 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 8l6 6v4l-4 2v-6l-6-6m12 0l3 3m0-3l-3 3" />
+                        </svg>
+                              <span>إلغاء التصفية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <section id="stats-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-teal-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">إجمالي الطلاب</h3>
+                        <p id="totalStudents" class="text-3xl font-bold text-slate-700">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-sky-100 p-3 rounded-full">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">متوسط التقدير العام</h3>
+                        <p id="averageScore" class="text-3xl font-bold text-slate-700">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-amber-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أعلى مادة أداءً</h3>
+                        <p id="topSubject" class="text-xl font-bold text-slate-700">-</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-rose-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m-8-8h8m-8 4h8M3 21h4M3 17h4M3 13h4M3 9h4M3 5h4" /></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أقل مادة أداءً</h3>
+                        <p id="bottomSubject" class="text-xl font-bold text-slate-700">-</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">متوسط الأداء حسب المادة</h2>
+                    <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني متوسط درجات الطلاب في جميع المواد الدراسية. يمكنك استخدامه لتحديد نقاط القوة والضعف العامة في الأداء الأكاديمي.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="subjectAverageChart"></canvas>
+                        <button id="exportSubjectChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>تصدير الرسم</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">توزيع التقديرات</h2>
+                     <p class="text-sm text-slate-500 mb-4">يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="gradeDistributionChart"></canvas>
+                        <button id="exportGradeChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>تصدير الرسم</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white p-6 rounded-xl shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="studentsTableTitle" class="text-xl font-bold text-slate-700">قائمة الطلاب والدرجات</h2>
+                    <button id="downloadCSVBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                        <span>تصدير الجدول</span>
+                    </button>
+                </div>
+                <p class="text-sm text-slate-500 mb-4">هنا يمكنك الاطلاع على الدرجات التفصيلية لكل طالب بناءً على خيارات التصفية المحددة. استخدم هذا الجدول لمراجعة أداء الطلاب .</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-right text-slate-500">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                            <tr>
+                                <th scope="col" class="px-2 py-2 whitespace-nowrap">الترتيب</th>
+                                <th scope="col" class="px-3 py-2 whitespace-nowrap">اسم الطالب</th>
+                                <th scope="col" class="px-2 py-2 whitespace-nowrap">الصف</th>
+                                <th scope="col" class="px-2 py-2 whitespace-nowrap">القسم</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">القرآن</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الاسلامية</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">العربي</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الإنجليزي</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الرياضيات</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">العلوم</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الاجتماعيات</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الفيزياء</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الكيمياء</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الأحياء</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">الجغرافيا</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">التاريخ</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">المجتمع</th>
+                                <th scope="col" class="px-1 py-2 whitespace-nowrap">سلوك</th>
+                                <th scope="col" class="px-2 py-2 whitespace-nowrap">التقدير</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+       
+        <footer class="text-center mb-2">
+            <p class="text-slate-500 mt-2"> حقوق الملكية @ لكمال الخطابي_781414133</p>
+        </footer><br><br>
+      
+
+    </div>
+
+    <script src="main.js"></script>
+
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[100]">
+        <div class="bg-white p-6 rounded-lg max-w-lg w-full shadow-lg overflow-y-auto max-h-[80vh]">
+            <h2 class="text-xl font-bold mb-6">📘 تعليمات الاستخدام</h2>
+            <ol class="list-decimal pl-5 space-y-2 text-sm">
+  <li>
+    جهّز بياناتك في ملف Excel بحيث يحتوي الصف الأعلى على عناوين واضحة مثل:  
+    <span class="font-mono bg-slate-100 px-1 rounded">اسم الطالب، الصف، القسم، أسماء المواد،النسبة،نوع التحليل</span>.  
+    يجب أن تكون الدرجات من 100، والنسبة محسوبة بحسب المتوسط الحسابي.  
+    يمكنك تحميل قالب مقترح لإدخال الدرجات والبيانات فيه من هنا:  
+    <a href="https://docs.google.com/spreadsheets/d/10c3PvB8g6WpXrQBaHW0OB8v0yJFqSDc8/export?format=xlsx" target="_blank" class="text-blue-600 underline">📥 تحميل قالب Excel المقترح</a>  
+    ثم احفظ الملف بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span>.
+  </li>
+  <li>تأكد من أن البيانات نظيفة ولا تحتوي على أخطاء أو خلايا فارغة.</li>
+  <li>ابدأ برفع ملف الدرجات بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span> من خلال زر "رفع ملف درجات الطلاب".</li>
+  <li>استخدم الفلاتر لاختيار الصف، المادة، والفترة الزمنية.</li>
+  <li>يمكنك تحديد أكثر من خيار من كل فلتر باستخدام القوائم المنسدلة متعددة الاختيارات.</li>
+  <li>يمكنك تصدير الرسم البياني والجدول بعد التصفية إلى جهازك واستخدامها في تقاريرك</li>
+  <li>اضغط على زر "إلغاء التصفية" لإعادة التصفية إلى الوضع الافتراضي.</li>
+  <li>ملاحظة: بعد الخروج من صفحة النظام
+     لن يتم حفظ أي بيانات!</li>
+  <li>
+    إذا أردت تجربة النظام قبل رفع بياناتك، يمكنك تحميل ملف تجريبي جاهز من هنا:  
+    <a href="https://drive.google.com/uc?export=download&id=1Lc8HS9agqWblN6jgnUpteULbl_VVU8ab" target="_blank" class="text-blue-600 underline">📥 تحميل ملف تجريبي بصيغة CSV</a>
+  </li>
+</ol>
+
+<h3 class="mt-4 font-semibold">📞 لمزيد من الاستفسار التواصل مع المبرمج:</h3>
+<p class="text-sm">
+  الاسم: م. كمال الخطابي<br>
+  رقم الهاتف: +967-781414133<br>
+  البريد الإلكتروني: <a href="mailto:kamalalkhtabi@gmail.com" class="text-blue-600 underline">kamalalkhtabi@gmail.com</a>
+</p>
+
+<button id="closeHelp" class="mt-6 bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200 text-sm">إغلاق</button>
+        </div>
+    </div>
+</body>
+</html>
