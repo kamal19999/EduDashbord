@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS (js-xlsx) for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -25,7 +28,7 @@
 
         <div class="w-full">
             <header class="text-center mb-4">
-                <h1 class="text-3xl md:text-4xl font-bold text-slate-700">لوحة تحليليـة للبيانات التعليميـة</h1>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-700">لوحة تفاعلية لتحليل البيانات التعليمية</h1>
                 <p class="text-slate-500 mt-2">تحليل فوري تفاعلي لنتائج الطلاب وأدائهم في مختلف المواد والمراحل الدراسية.</p>
             </header>
         </div>
@@ -198,6 +201,58 @@
                         <p id="bottomSubject" class="text-xl font-bold text-slate-700">-</p>
                     </div>
                 </div>
+                <!-- New Card: Top Performing Student -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أعلى طالب أداءً</h3>
+                        <p id="topStudentName" class="text-xl font-bold text-slate-700">-</p>
+                        <p id="topStudentScore" class="text-sm text-slate-500"></p>
+                    </div>
+                </div>
+                <!-- New Card: Bottom Performing Student -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أدنى طالب أداءً</h3>
+                        <p id="bottomStudentName" class="text-xl font-bold text-slate-700">-</p>
+                        <p id="bottomStudentScore" class="text-sm text-slate-500"></p>
+                    </div>
+                </div>
+                <!-- New Card: Top Performing Class -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أعلى صف أداءً</h3>
+                        <p id="topClass" class="text-xl font-bold text-slate-700">-</p>
+                        <p id="topClassScore" class="text-sm text-slate-500"></p>
+                    </div>
+                </div>
+                <!-- New Card: Bottom Performing Class -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">أدنى صف أداءً</h3>
+                        <p id="bottomClass" class="text-xl font-bold text-slate-700">-</p>
+                        <p id="bottomClassScore" class="text-sm text-slate-500"></p>
+                    </div>
+                </div>
             </section>
 
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -214,6 +269,7 @@
                         </button>
                     </div>
                 </div>
+                
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h2 class="text-xl font-bold text-slate-700 mb-4">توزيع التقديرات</h2>
                      <p class="text-sm text-slate-500 mb-4">يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.</p>
@@ -227,16 +283,48 @@
                         </button>
                     </div>
                 </div>
+
+
+                <!-- New Chart: Student Distribution by Grade -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">توزيع الطلاب حسب الصف الدراسي</h2>
+                    <p class="text-sm text-slate-500 mb-4">يوضح هذا المخطط الدائري توزيع الطلاب ونسبتهم المئوية لكل صف دراسي.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="gradeStudentDistributionChart"></canvas>
+                        <button id="exportGradeStudentDistributionChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>تصدير الرسم</span>
+                        </button>
+                    </div>
+                </div>
+
+
+                <!-- New Chart: Average Grades by Class -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">متوسط درجات الطلاب حسب الصف</h2>
+                    <p class="text-sm text-slate-500 mb-4">يقارن هذا المخطط البياني متوسط درجات الطلاب في مختلف الصفوف الدراسية.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="averageGradeByClassChart"></canvas>
+                        <button id="exportAverageGradeByClassChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>تصدير الرسم</span>
+                        </button>
+                    </div>
+                </div>
             </section>
 
             <section class="bg-white p-6 rounded-xl shadow-md">
                 <div class="flex items-center justify-between mb-4">
                     <h2 id="studentsTableTitle" class="text-xl font-bold text-slate-700">قائمة الطلاب والدرجات</h2>
-                    <button id="downloadCSVBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                    <button id="downloadExcelBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>
-                        <span>تصدير الجدول</span>
+                        <span>تصدير إلى Excel</span>
                     </button>
                 </div>
                 <p class="text-sm text-slate-500 mb-4">هنا يمكنك الاطلاع على الدرجات التفصيلية لكل طالب بناءً على خيارات التصفية المحددة. استخدم هذا الجدول لمراجعة أداء الطلاب .</p>
