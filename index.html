@@ -17,87 +17,6 @@
 </head>
 
 
-<script defer src="/_vercel/insights/script.js"></script>
-
-<script>
-  // دالة عامة لتتبع أي حدث مخصص
-  function trackEvent(eventName, eventData = {}) {
-    if (window.va && typeof window.va.track === 'function') {
-      window.va.track(eventName, eventData);
-      console.log(`Event sent: ${eventName}`, eventData);
-    } else {
-      console.warn('Vercel Analytics not loaded yet.');
-    }
-  }
-
-  // 🔹 تتبع تغيير الفلاتر (جميعها في حلقة واحدة)
-  const filterIds = [
-    'gradeFilter',
-    'sectionFilter',
-    'levelFilter',
-    'categoryFilter',
-    'subjectFilter',
-    'timeFilter'
-  ];
-
-  filterIds.forEach(id => {
-    document.getElementById(id)?.addEventListener('change', e => {
-      let value = e.target.multiple
-        ? Array.from(e.target.selectedOptions).map(opt => opt.value).join(', ')
-        : e.target.value;
-
-      trackEvent('filter_change', {
-        filter_name: id,
-        filter_value: value
-      });
-    });
-  });
-
-  // 🔹 تتبع الضغط على زر تصدير
-  document.getElementById('exportTableAsExcel')?.addEventListener('click', () => {
-    trackEvent('export', {
-      format: 'xlsx',
-      rows: getCurrentRowsCount() // إذا عندك دالة تحسب عدد الصفوف
-    });
-  });
-
-  // 🔹 تتبع البحث
-  document.getElementById('searchInput')?.addEventListener('input', e => {
-    trackEvent('search', { query: e.target.value });
-  });
-
-  // 🔹 تتبع التنقلات داخل الصفحة (SPA)
-  function sendPageView() {
-    if (window.va && typeof window.va.track === 'function') {
-      window.va.track('pageview');
-      console.log('Page view sent to Vercel Analytics:', location.href);
-    }
-  }
-
-  // تغيّر الهاش
-  window.addEventListener('hashchange', sendPageView);
-
-  // تغيّر العنوان عبر History API
-  (function(history) {
-    const pushState = history.pushState;
-    const replaceState = history.replaceState;
-
-    history.pushState = function() {
-      const ret = pushState.apply(this, arguments);
-      sendPageView();
-      return ret;
-    };
-    history.replaceState = function() {
-      const ret = replaceState.apply(this, arguments);
-      sendPageView();
-      return ret;
-    };
-
-    window.addEventListener('popstate', sendPageView);
-  })(window.history);
-</script>
- 
-
 <body class="bg-slate-50 text-slate-800">
 
     <button id="helpBtn" class="absolute top-4 left-4 text-blue-600 hover:text-blue-800 flex items-center space-x-2">
@@ -449,6 +368,123 @@
       
 
     </div>
+
+
+
+
+
+
+    <script defer src="/_vercel/insights/script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // دالة عامة لتتبع أي حدث مخصص
+  function trackEvent(eventName, eventData = {}) {
+    if (window.va && typeof window.va.track === 'function') {
+      window.va.track(eventName, eventData);
+      console.log(`Event sent: ${eventName}`, eventData);
+    } else {
+      console.warn('Vercel Analytics not loaded yet.');
+    }
+  }
+
+  // 🔹 تتبع تغيير الفلاتر (جميعها في حلقة واحدة)
+  const filterIds = [
+    'gradeFilter',
+    'sectionFilter',
+    'levelFilter',
+    'categoryFilter',
+    'subjectFilter',
+    'timeFilter'
+  ];
+
+  filterIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      // إذا كان العنصر زر أو قائمة مخصصة
+      el.addEventListener('click', () => {
+        let value = el.value || el.textContent.trim();
+        trackEvent('filter_change', {
+          filter_name: id,
+          filter_value: value
+        });
+      });
+
+      // إذا كان العنصر <select> عادي
+      el.addEventListener('change', e => {
+        let value = e.target.multiple
+          ? Array.from(e.target.selectedOptions).map(opt => opt.value).join(', ')
+          : e.target.value;
+        trackEvent('filter_change', {
+          filter_name: id,
+          filter_value: value
+        });
+      });
+    }
+  });
+
+  // 🔹 تتبع الضغط على زر التصدير (تأكد من ID الصحيح)
+  const exportBtn = document.getElementById('downloadExcelBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      trackEvent('export', {
+        format: 'xlsx',
+        rows: typeof getCurrentRowsCount === 'function' ? getCurrentRowsCount() : null
+      });
+    });
+  }
+
+  // 🔹 تتبع البحث
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', e => {
+      trackEvent('search', { query: e.target.value });
+    });
+  }
+
+  // 🔹 تتبع فتح نافذة المساعدة (helpModal)
+  const helpModal = document.getElementById('helpModal');
+  if (helpModal) {
+    helpModal.addEventListener('click', () => {
+      trackEvent('help_modal_open', { element_id: 'helpModal' });
+    });
+  }
+
+  // 🔹 تتبع التنقلات داخل الصفحة (SPA)
+  function sendPageView() {
+    if (window.va && typeof window.va.track === 'function') {
+      window.va.track('pageview');
+      console.log('Page view sent to Vercel Analytics:', location.href);
+    }
+  }
+
+  window.addEventListener('hashchange', sendPageView);
+
+  (function(history) {
+    const pushState = history.pushState;
+    const replaceState = history.replaceState;
+
+    history.pushState = function() {
+      const ret = pushState.apply(this, arguments);
+      sendPageView();
+      return ret;
+    };
+    history.replaceState = function() {
+      const ret = replaceState.apply(this, arguments);
+      sendPageView();
+      return ret;
+    };
+
+    window.addEventListener('popstate', sendPageView);
+  })(window.history);
+
+});
+</script>
+
+
+
+
+
 
     <script src="main.js"></script>
 
