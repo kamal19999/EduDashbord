@@ -380,6 +380,7 @@
 <script defer src="/_vercel/insights/script.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  console.log("Analytics script loaded and DOMContentLoaded fired.");
 
   // دالة عامة لتتبع أي حدث مخصص مع انتظار جاهزية Vercel Analytics
   function trackEvent(eventName, eventData = {}) {
