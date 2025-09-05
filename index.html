@@ -380,38 +380,20 @@
 <script defer src="/_vercel/insights/script.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  console.log("Analytics script loaded and DOMContentLoaded fired.");
 
   // دالة عامة لتتبع أي حدث مخصص مع انتظار جاهزية Vercel Analytics
   function trackEvent(eventName, eventData = {}) {
     function send() {
-      // Ensure window.va.track is a function before calling, or use a dummy
-      if (window.va && typeof window.va.track === 'function') {
-        window.va.track(eventName, eventData);
-      } else {
-        // Fallback for local development or if Vercel Analytics is not fully initialized
-        console.log(`[DEBUG] Vercel Analytics 'window.va.track' not functional. Simulating track for event: ${eventName}`, eventData);
-      }
+      window.va.track(eventName, eventData);
       console.log(`Event sent: ${eventName}`, eventData);
     }
-
     if (window.va && typeof window.va.track === 'function') {
       send();
     } else {
-      let attempts = 0;
-      const maxAttempts = 50; // Try for 5 seconds (50 * 100ms)
       const interval = setInterval(() => {
-        attempts++;
         if (window.va && typeof window.va.track === 'function') {
           clearInterval(interval);
           send();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          console.warn(`Vercel Analytics 'window.va.track' not available after ${maxAttempts * 100}ms for event: ${eventName}`, { window_va: window.va, typeof_va_track: typeof window.va?.track });
-          // Force send even if va.track is not ready, to at least log our event
-          send();
-        } else {
-          // console.log(`Waiting for window.va.track... Attempt ${attempts} for event: ${eventName}`);
         }
       }, 100);
     }
