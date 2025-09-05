@@ -383,7 +383,6 @@ document.addEventListener('DOMContentLoaded', function () {
       window.va.track(eventName, eventData);
       console.log(`Event sent: ${eventName}`, eventData);
     }
-
     if (window.va && typeof window.va.track === 'function') {
       send();
     } else {
@@ -396,29 +395,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 🔹 تتبع تغيير الفلاتر
-  const filterIds = [
-    'gradeFilter',
-    'sectionFilter',
-    'levelFilter',
-    'categoryFilter',
-    'subjectFilter',
-    'timeFilter'
+  // 🔹 تتبع الفلاتر المخصصة (أزرار أو عناصر منسدلة)
+  const customFilters = [
+    { buttonId: 'gradeFilterToggle', valueId: 'gradeFilterDisplay', name: 'gradeFilter' },
+    { buttonId: 'sectionFilterToggle', valueId: 'sectionFilterDisplay', name: 'sectionFilter' },
+    { buttonId: 'levelFilterToggle', valueId: 'levelFilterDisplay', name: 'levelFilter' },
+    { buttonId: 'categoryFilterToggle', valueId: 'categoryFilterDisplay', name: 'categoryFilter' },
+    { buttonId: 'subjectFilterToggle', valueId: 'subjectFilterDisplay', name: 'subjectFilter' },
+    { buttonId: 'timeFilterToggle', valueId: 'timeFilterDisplay', name: 'timeFilter' }
   ];
 
-  filterIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('click', () => {
-        let value = el.value || el.textContent.trim();
-        trackEvent('filter_change', { filter_name: id, filter_value: value });
-      });
-
-      el.addEventListener('change', e => {
-        let value = e.target.multiple
-          ? Array.from(e.target.selectedOptions).map(opt => opt.value).join(', ')
-          : e.target.value;
-        trackEvent('filter_change', { filter_name: id, filter_value: value });
+  customFilters.forEach(f => {
+    const btn = document.getElementById(f.buttonId);
+    const valEl = document.getElementById(f.valueId);
+    if (btn && valEl) {
+      btn.addEventListener('click', () => {
+        const value = valEl.textContent.trim();
+        trackEvent('filter_change', { filter_name: f.name, filter_value: value });
       });
     }
   });
@@ -434,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 🔹 تتبع البحث
+  // 🔹 تتبع البحث (إذا أضفت حقل بحث)
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('input', e => {
@@ -454,13 +447,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function sendPageView() {
     trackEvent('pageview');
   }
-
   window.addEventListener('hashchange', sendPageView);
-
   (function(history) {
     const pushState = history.pushState;
     const replaceState = history.replaceState;
-
     history.pushState = function() {
       const ret = pushState.apply(this, arguments);
       sendPageView();
@@ -471,12 +461,15 @@ document.addEventListener('DOMContentLoaded', function () {
       sendPageView();
       return ret;
     };
-
     window.addEventListener('popstate', sendPageView);
   })(window.history);
 
 });
 </script>
+
+
+
+
 
 
 
