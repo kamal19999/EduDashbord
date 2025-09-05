@@ -15,8 +15,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-
-
 <body class="bg-slate-50 text-slate-800">
 
     <button id="helpBtn" class="absolute top-4 left-4 text-blue-600 hover:text-blue-800 flex items-center space-x-2">
@@ -154,10 +152,6 @@
                                 </label>
                             </div>
                         </div>
-                    </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="searchInput" class="block text-sm font-medium text-slate-500 mb-1">بحث</label>
-                        <input type="text" id="searchInput" placeholder="ابحث عن طالب..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
                     </div>
                     <button id="resetFiltersBtn" class="bg-slate-100 text-red-500 py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors shadow flex items-center gap-1 text-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -372,6 +366,172 @@
       
 
     </div>
+
+
+
+
+    <script defer src="/_vercel/insights/script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // إعدادات عامة
+  const ANALYTICS_MODE = 'production'; // أو 'development'
+  const DEBUG = true; // لطباعة الأحداث في الـ Console
+
+  // دالة عامة لتتبع أي حدث مخصص مع انتظار جاهزية Vercel Analytics
+  function trackEvent(eventName, eventData = {}) {
+    function send() {
+      const payload = { ...eventData, mode: ANALYTICS_MODE };
+      window.va.track(eventName, payload);
+      if (DEBUG) console.log(`Event sent: ${eventName}`, payload);
+    }
+    if (window.va && typeof window.va.track === 'function') {
+      send();
+    } else {
+      const interval = setInterval(() => {
+        if (window.va && typeof window.va.track === 'function') {
+          clearInterval(interval);
+          send();
+        }
+      }, 100);
+    }
+  }
+
+  // 🔹 تتبع الفلاتر المخصصة (أزرار أو عناصر منسدلة)
+  const customButtonFilters = [
+    { buttonId: 'gradeFilterToggle', valueId: 'gradeFilterDisplay', name: 'gradeFilter' },
+    { buttonId: 'sectionFilterToggle', valueId: 'sectionFilterDisplay', name: 'sectionFilter' },
+    { buttonId: 'categoryFilterToggle', valueId: 'categoryFilterDisplay', name: 'categoryFilter' },
+    { buttonId: 'subjectFilterToggle', valueId: 'subjectFilterDisplay', name: 'subjectFilter' },
+    { buttonId: 'timeFilterToggle', valueId: 'timeFilterDisplay', name: 'timeFilter' }
+  ];
+
+  customButtonFilters.forEach(f => {
+    const btn = document.getElementById(f.buttonId);
+    const valEl = document.getElementById(f.valueId);
+    if (btn && valEl) {
+      btn.addEventListener('click', () => {
+        const value = valEl.textContent.trim();
+        trackEvent('filter_change', { filter_name: f.name, filter_value: value, filter_type: 'button_dropdown' });
+      });
+    }
+  });
+
+  // 🔹 تتبع فلتر المستوى (select element)
+  const levelFilterSelect = document.getElementById('levelFilter');
+  if (levelFilterSelect) {
+    levelFilterSelect.addEventListener('change', (e) => {
+      trackEvent('filter_change', { filter_name: 'levelFilter', filter_value: e.target.value, filter_type: 'select' });
+    });
+  }
+
+  // 🔹 تتبع الضغط على زر التصدير (Excel)
+  const exportExcelBtn = document.getElementById('downloadExcelBtn');
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener('click', () => {
+      trackEvent('export_data', {
+        format: 'xlsx',
+        source: 'students_table',
+        rows: typeof getCurrentRowsCount === 'function' ? getCurrentRowsCount() : null
+      });
+    });
+  }
+
+  // 🔹 تتبع أزرار تصدير الرسوم البيانية
+  const chartExportButtons = [
+    { id: 'exportSubjectChartBtn', chartName: 'subject_average_chart' },
+    { id: 'exportGradeChartBtn', chartName: 'grade_distribution_chart' },
+    { id: 'exportGradeStudentDistributionChartBtn', chartName: 'grade_student_distribution_chart' },
+    { id: 'exportAverageGradeByClassChartBtn', chartName: 'average_grade_by_class_chart' }
+  ];
+
+  chartExportButtons.forEach(btnInfo => {
+    const btn = document.getElementById(btnInfo.id);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        trackEvent('export_chart', { chart_name: btnInfo.chartName, format: 'png' });
+      });
+    }
+  });
+
+  // 🔹 تتبع البحث
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', e => {
+      trackEvent('search', { query: e.target.value });
+    });
+  }
+
+  // 🔹 تتبع فتح نافذة المساعدة (عبر الزر)
+  const helpButton = document.getElementById('helpBtn');
+  if (helpButton) {
+    helpButton.addEventListener('click', () => {
+      trackEvent('help_button_click');
+    });
+  }
+
+  // 🔹 تتبع فتح نافذة المساعدة (عبر النقر على المودال نفسه)
+  const helpModal = document.getElementById('helpModal');
+  if (helpModal) {
+    helpModal.addEventListener('click', (e) => {
+      if (e.target === helpModal) {
+        trackEvent('help_modal_background_click');
+      }
+    });
+  }
+
+  // 🔹 تتبع إغلاق نافذة المساعدة
+  const closeHelpButton = document.getElementById('closeHelp');
+  if (closeHelpButton) {
+    closeHelpButton.addEventListener('click', () => {
+      trackEvent('help_modal_close');
+    });
+  }
+
+  // 🔹 تتبع التنقلات داخل الصفحة (SPA)
+  function sendPageView() {
+    trackEvent('pageview', { path: window.location.pathname + window.location.search + window.location.hash });
+  }
+  sendPageView();
+  window.addEventListener('hashchange', sendPageView);
+  (function(history) {
+    const pushState = history.pushState;
+    const replaceState = history.replaceState;
+    history.pushState = function() {
+      const ret = pushState.apply(this, arguments);
+      sendPageView();
+      return ret;
+    };
+    history.replaceState = function() {
+      const ret = replaceState.apply(this, arguments);
+      sendPageView();
+      return ret;
+    };
+    window.addEventListener('popstate', sendPageView);
+  })(window.history);
+
+  // 🔹 تتبع رفع ملف CSV
+  const csvUploadInput = document.getElementById('csvUpload');
+  if (csvUploadInput) {
+    csvUploadInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        trackEvent('csv_file_upload', { file_name: e.target.files[0].name, file_size: e.target.files[0].size });
+      }
+    });
+  }
+
+  // 🔹 تتبع زر إعادة تعيين الفلاتر
+  const resetFiltersButton = document.getElementById('resetFiltersBtn');
+  if (resetFiltersButton) {
+    resetFiltersButton.addEventListener('click', () => {
+      trackEvent('reset_filters');
+    });
+  }
+
+});
+</script>
+
+
 
     <script src="main.js"></script>
 
