@@ -369,8 +369,109 @@
 
 
 
+    <!-- Google Analytics GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5HBQNQSE0T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-5HBQNQSE0T'); // تفعيل تتبع الصفحات تلقائيًا
+</script>
 
-    <script defer src="/_vercel/insights/script.js"></script>
+<!-- Vercel Analytics -->
+<script defer src="/_vercel/insights/script.js"></script>
+
+<!-- أحداث مخصصة -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // دالة عامة لإرسال الأحداث إلى GA4
+  function trackEvent(eventName, eventParams = {}) {
+    gtag('event', eventName, eventParams);
+    console.log(`GA4 Event sent: ${eventName}`, eventParams);
+  }
+
+  // 🔹 تتبع الفلاتر
+  const customFilters = [
+    { buttonId: 'gradeFilterToggle', valueId: 'gradeFilterDisplay', name: 'gradeFilter' },
+    { buttonId: 'sectionFilterToggle', valueId: 'sectionFilterDisplay', name: 'sectionFilter' },
+    { buttonId: 'categoryFilterToggle', valueId: 'categoryFilterDisplay', name: 'categoryFilter' },
+    { buttonId: 'subjectFilterToggle', valueId: 'subjectFilterDisplay', name: 'subjectFilter' },
+    { buttonId: 'timeFilterToggle', valueId: 'timeFilterDisplay', name: 'timeFilter' }
+  ];
+
+  customFilters.forEach(f => {
+    const btn = document.getElementById(f.buttonId);
+    const valEl = document.getElementById(f.valueId);
+    if (btn && valEl) {
+      btn.addEventListener('click', () => {
+        const value = valEl.textContent.trim();
+        trackEvent('filter_change', { filter_name: f.name, filter_value: value });
+      });
+    }
+  });
+
+  // 🔹 تتبع البحث
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', e => {
+      trackEvent('search', { query: e.target.value });
+    });
+  }
+
+  // 🔹 تتبع تصدير البيانات (Excel)
+  const exportBtn = document.getElementById('downloadExcelBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      trackEvent('export_data', {
+        format: 'xlsx',
+        rows: typeof getCurrentRowsCount === 'function' ? getCurrentRowsCount() : null
+      });
+    });
+  }
+
+  // 🔹 تتبع تصدير الرسوم البيانية
+  const chartExportButtons = [
+    { id: 'exportSubjectChartBtn', chartName: 'subject_average_chart' },
+    { id: 'exportGradeChartBtn', chartName: 'grade_distribution_chart' },
+    { id: 'exportGradeStudentDistributionChartBtn', chartName: 'grade_student_distribution_chart' },
+    { id: 'exportAverageGradeByClassChartBtn', chartName: 'average_grade_by_class_chart' }
+  ];
+
+  chartExportButtons.forEach(btnInfo => {
+    const btn = document.getElementById(btnInfo.id);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        trackEvent('export_chart', { chart_name: btnInfo.chartName, format: 'png' });
+      });
+    }
+  });
+
+  // 🔹 تتبع رفع الملفات
+  const fileUploadInput = document.getElementById('csvUpload'); // غيّر ID إذا كان مختلف
+  if (fileUploadInput) {
+    fileUploadInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        trackEvent('file_upload', {
+          file_name: file.name,
+          file_size: file.size,
+          file_type: file.type || 'unknown'
+        });
+      }
+    });
+  }
+
+  // 🔹 تتبع فتح نافذة المساعدة
+  const helpModal = document.getElementById('helpModal');
+  if (helpModal) {
+    helpModal.addEventListener('click', () => {
+      trackEvent('help_modal_open', { element_id: 'helpModal' });
+    });
+  }
+
+});
+</script>
 
 
 
