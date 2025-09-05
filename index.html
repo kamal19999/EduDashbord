@@ -373,22 +373,30 @@
 
 
 
-
-    <script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-  // دالة عامة لتتبع أي حدث مخصص
+  // دالة عامة لتتبع أي حدث مخصص مع انتظار جاهزية Vercel Analytics
   function trackEvent(eventName, eventData = {}) {
-    if (window.va && typeof window.va.track === 'function') {
+    function send() {
       window.va.track(eventName, eventData);
       console.log(`Event sent: ${eventName}`, eventData);
+    }
+
+    if (window.va && typeof window.va.track === 'function') {
+      send();
     } else {
-      console.warn('Vercel Analytics not loaded yet.');
+      const interval = setInterval(() => {
+        if (window.va && typeof window.va.track === 'function') {
+          clearInterval(interval);
+          send();
+        }
+      }, 100);
     }
   }
 
-  // 🔹 تتبع تغيير الفلاتر (جميعها في حلقة واحدة)
+  // 🔹 تتبع تغيير الفلاتر
   const filterIds = [
     'gradeFilter',
     'sectionFilter',
@@ -401,29 +409,21 @@ document.addEventListener('DOMContentLoaded', function () {
   filterIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      // إذا كان العنصر زر أو قائمة مخصصة
       el.addEventListener('click', () => {
         let value = el.value || el.textContent.trim();
-        trackEvent('filter_change', {
-          filter_name: id,
-          filter_value: value
-        });
+        trackEvent('filter_change', { filter_name: id, filter_value: value });
       });
 
-      // إذا كان العنصر <select> عادي
       el.addEventListener('change', e => {
         let value = e.target.multiple
           ? Array.from(e.target.selectedOptions).map(opt => opt.value).join(', ')
           : e.target.value;
-        trackEvent('filter_change', {
-          filter_name: id,
-          filter_value: value
-        });
+        trackEvent('filter_change', { filter_name: id, filter_value: value });
       });
     }
   });
 
-  // 🔹 تتبع الضغط على زر التصدير (تأكد من ID الصحيح)
+  // 🔹 تتبع الضغط على زر التصدير
   const exportBtn = document.getElementById('downloadExcelBtn');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 🔹 تتبع فتح نافذة المساعدة (helpModal)
+  // 🔹 تتبع فتح نافذة المساعدة
   const helpModal = document.getElementById('helpModal');
   if (helpModal) {
     helpModal.addEventListener('click', () => {
@@ -452,10 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 🔹 تتبع التنقلات داخل الصفحة (SPA)
   function sendPageView() {
-    if (window.va && typeof window.va.track === 'function') {
-      window.va.track('pageview');
-      console.log('Page view sent to Vercel Analytics:', location.href);
-    }
+    trackEvent('pageview');
   }
 
   window.addEventListener('hashchange', sendPageView);
