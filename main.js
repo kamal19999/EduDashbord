@@ -1,16 +1,50 @@
 let subjectAverageChart, gradeDistributionChart, gradeStudentDistributionChart, averageGradeByClassChart;
 let allStudentsData = [];
 
-let subjectLabels = {}; // Will be populated dynamically
-let subjectKeys = []; // Will be populated dynamically
+let subjectLabels = {}; // Maps key to clean name, e.g., { 'math': 'الرياضيات' }
+let subjectKeys = [];   // e.g., ['math', 'science']
+let globalMaxScore = 100; // Will be set by the user
+//الحمد لله
+const getScoreAsPercentage = (score) => {
+    if (globalMaxScore === 0) return 0;
+    return (score / globalMaxScore) * 100;
+};
 
-const getGradeCategory = (score) => {
-    if (score === 0) return 'الغياب'; // New category for zero scores
-    if (score >= 90) return 'ممتاز';
-    if (score >= 80) return 'جيد جداً';
-    if (score >= 65) return 'جيد';
-    if (score >= 50) return 'مقبول';
+const getGradeCategory = (percentage) => {
+    if (percentage === 0) return 'الغياب';
+    if (percentage >= 90) return 'ممتاز';
+    if (percentage >= 80) return 'جيد جداً';
+    if (percentage >= 65) return 'جيد';
+    if (percentage >= 50) return 'مقبول';
     return 'ضعيف';
+};
+
+const formatPercentage = (value) => {
+    if (value == null || isNaN(value)) {
+        return '-';
+    }
+    // Format to a maximum of two decimal places, only if needed.
+    const formattedValue = parseFloat(value.toFixed(2));
+    return `%${formattedValue}`;
+};
+
+const getCategoryColorClass = (category) => {
+    switch (category) {
+        case 'ممتاز':
+            return 'text-green-600'; // أخضر
+        case 'جيد جداً':
+            return 'text-blue-600'; // أزرق
+        case 'جيد':
+            return 'text-amber-500'; // كهرماني
+        case 'مقبول':
+            return 'text-purple-600'; // بنفسجي
+        case 'ضعيف':
+            return 'text-red-600'; // أحمر
+        case 'الغياب':
+            return 'text-black'; // أسود
+        default:
+            return 'text-slate-700'; // افتراضي
+    }
 };
 
 const chartColors = {
@@ -62,6 +96,7 @@ function updateDashboard() {
     const categoryFilterValues = getSelectedFilterValues('categoryFilter');
     const subjectFilterValues = getSelectedFilterValues('subjectFilter');
     const timeFilterValues = getSelectedFilterValues('timeFilter');
+    const searchQuery = document.getElementById('studentSearchInput').value.trim().toLowerCase();
 
     // For subject filter, if multiple subjects are selected, 'overall' should still be based on the original overall score.
     // If only one subject is selected, 'overall' can be adjusted to that subject's score.
@@ -76,37 +111,44 @@ function updateDashboard() {
         let studentCategoryForFiltering = student.category;
 
         if (selectedSubjectKeyForOverall) {
-            studentOverallForFiltering = student.scores[selectedSubjectKeyForOverall] ?? 0;
-            studentCategoryForFiltering = getGradeCategory(studentOverallForFiltering); // Recalculate if subject filter changes overall
+            const rawScore = student.scores[selectedSubjectKeyForOverall] ?? 0;
+            studentOverallForFiltering = getScoreAsPercentage(rawScore);
+            studentCategoryForFiltering = getGradeCategory(studentOverallForFiltering);
         }
 
         const matchesGrade = gradeFilterValues.includes('الكل') || gradeFilterValues.includes(student.grade ?? '');
         const matchesSection = sectionFilterValues.includes('الكل') || sectionFilterValues.includes(student.section ?? '');
         const matchesTime = timeFilterValues.includes('الكل') || timeFilterValues.includes(student.time ?? '');
 
-        let matchesCategory = categoryFilterValues.includes('الكل') || categoryFilterValues.includes(studentCategoryForFiltering);
+        // Simplified category matching logic
+        const matchesCategory = (() => {
+            if (categoryFilterValues.includes('الكل')) return true;
+            const isAbsent = studentOverallForFiltering === 0;
+            const matchesAbsent = categoryFilterValues.includes('الغياب') && isAbsent;
+            const matchesRegularCategory = categoryFilterValues.includes(studentCategoryForFiltering) && !isAbsent;
+            return matchesAbsent || matchesRegularCategory;
+        })();
+
         let matchesSubject = subjectFilterValues.includes('الكل');
 
         if (!subjectFilterValues.includes('الكل')) {
-            matchesSubject = subjectFilterValues.some(sf => {
-                const key = subjectKeyMap[sf];
-                return key && (student.scores[key] ?? 0) > 0;
-            });
-        }
-
-        if (categoryFilterValues.includes('الغياب')) {
-            if (studentOverallForFiltering === 0) {
-                matchesCategory = true;
-            } else if (categoryFilterValues.length === 1) {
-                matchesCategory = false;
+            // If filtering for 'Absent' and a single subject is chosen, the logic must find students with a score of 0.
+            if (categoryFilterValues.includes('الغياب') && selectedSubjectKeyForOverall) {
+                // The category match already confirmed absence based on this subject's score.
+                // So, we just need to confirm the match.
+                matchesSubject = true;
             } else {
-                matchesCategory = categoryFilterValues.includes(studentCategoryForFiltering);
+                // Original logic: check if student has a score > 0 in any of the selected subjects.
+                matchesSubject = subjectFilterValues.some(sf => {
+                    const key = subjectKeyMap[sf];
+                    return key && (student.scores[key] ?? 0) > 0;
+                });
             }
-        } else if (!categoryFilterValues.includes('الكل')) {
-            matchesCategory = categoryFilterValues.includes(studentCategoryForFiltering);
         }
 
-        return matchesGrade && matchesSection && matchesCategory && matchesSubject && matchesTime;
+        const matchesSearch = !searchQuery || (student.name && student.name.toLowerCase().includes(searchQuery));
+
+        return matchesGrade && matchesSection && matchesCategory && matchesSubject && matchesTime && matchesSearch;
     });
 
     if (levelFilter === 'top10') {
@@ -123,7 +165,7 @@ function updateDashboard() {
         sectionFilter: { label: 'القسم', values: sectionFilterValues },
         categoryFilter: { label: 'التقدير', values: categoryFilterValues },
         subjectFilter: { label: 'المادة', values: subjectFilterValues },
-        timeFilter: { label: 'نوع التحليل', values: timeFilterValues }
+        timeFilter: { label: ' الزمن', values: timeFilterValues }
     };
 
     for (const filterId in filters) {
@@ -148,19 +190,8 @@ function updateDashboard() {
 function updateStatsCards(students) {
     document.getElementById('totalStudents').textContent = students.length;
 
-    if (students.length === 0) {
-        document.getElementById('averageScore').textContent = '0';
-        document.getElementById('topSubject').textContent = '-';
-        document.getElementById('bottomSubject').textContent = '-';
-        document.getElementById('topClass').textContent = '-';
-        document.getElementById('topClassScore').textContent = '';
-        document.getElementById('bottomClass').textContent = '-';
-        document.getElementById('bottomClassScore').textContent = '';
-        return;
-    }
-
-    const averageScore = (students.reduce((acc, student) => acc + student.overall, 0) / students.length).toFixed(2);
-    document.getElementById('averageScore').textContent = averageScore;
+    const averageScoreValue = students.length > 0 ? (students.reduce((acc, student) => acc + student.overall, 0) / students.length) : 0;
+    document.getElementById('averageScore').textContent = formatPercentage(averageScoreValue);
 
     const subjectAvgs = calculateSubjectAverages(students);
     const sortedSubjects = Object.entries(subjectAvgs).filter(([key, avg]) => key !== 'behavior' && avg > 0).sort(([, a], [, b]) => b - a);
@@ -198,7 +229,7 @@ function updateTopBottomClassCards(students) {
 
     const calculatedClassAverages = Object.entries(classAverages).map(([grade, totalScore]) => ({
         grade: grade,
-        average: (totalScore / classCounts[grade]).toFixed(2)
+        average: (totalScore / classCounts[grade])
     }));
 
     calculatedClassAverages.sort((a, b) => b.average - a.average);
@@ -206,11 +237,11 @@ function updateTopBottomClassCards(students) {
     const topClass = calculatedClassAverages[0];
     const bottomClass = calculatedClassAverages[calculatedClassAverages.length - 1];
 
-    topClassElement.textContent = topClass.grade || '-';
-    topClassScoreElement.textContent = `متوسط: ${topClass.average}%`;
+    topClassElement.textContent = topClass?.grade || '-';
+    topClassScoreElement.textContent = topClass ? `متوسط: ${formatPercentage(topClass.average)}` : '';
 
-    bottomClassElement.textContent = bottomClass.grade || '-';
-    bottomClassScoreElement.textContent = `متوسط: ${bottomClass.average}%`;
+    bottomClassElement.textContent = bottomClass?.grade || '-';
+    bottomClassScoreElement.textContent = bottomClass ? `متوسط: ${formatPercentage(bottomClass.average)}` : '';
 }
 
 function updateTopBottomStudentsCards(students) {
@@ -231,11 +262,11 @@ function updateTopBottomStudentsCards(students) {
     const topStudent = sortedByOverall[0];
     const bottomStudent = sortedByOverall[sortedByOverall.length - 1];
 
-    topStudentNameElement.textContent = topStudent.name || '-';
-    topStudentScoreElement.textContent = `الصف: ${topStudent.grade || '-'} - النسبة: ${topStudent.overall.toFixed(2)}%`;
+    topStudentNameElement.textContent = topStudent?.name || '-';
+    topStudentScoreElement.textContent = topStudent ? `الصف: ${topStudent.grade || '-'} - النسبة: ${formatPercentage(topStudent.overall)}` : '';
 
-    bottomStudentNameElement.textContent = bottomStudent.name || '-';
-    bottomStudentScoreElement.textContent = `الصف: ${bottomStudent.grade || '-'} - النسبة: ${bottomStudent.overall.toFixed(2)}%`;
+    bottomStudentNameElement.textContent = bottomStudent?.name || '-';
+    bottomStudentScoreElement.textContent = bottomStudent ? `الصف: ${bottomStudent.grade || '-'} - النسبة: ${formatPercentage(bottomStudent.overall)}` : '';
 }
 
 function calculateSubjectAverages(students) {
@@ -243,8 +274,9 @@ function calculateSubjectAverages(students) {
     const subjectCounts = {};
 
     students.forEach(student => {
-        for (const subject of subjectKeys) {
-            if (student.scores[subject] !== null) {
+        // Use Object.keys(student.scores) to only average subjects the student actually has
+        for (const subject in student.scores) {
+            if (subject !== 'behavior' && student.scores[subject] != null) {
                 subjectTotals[subject] = (subjectTotals[subject] || 0) + student.scores[subject];
                 subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
             }
@@ -253,7 +285,8 @@ function calculateSubjectAverages(students) {
 
     const subjectAvgs = {};
     for (const subject in subjectTotals) {
-        subjectAvgs[subject] = subjectTotals[subject] / subjectCounts[subject];
+        const rawAverage = subjectTotals[subject] / subjectCounts[subject];
+        subjectAvgs[subject] = getScoreAsPercentage(rawAverage); // Convert average to percentage
     }
     return subjectAvgs;
 }
@@ -288,7 +321,7 @@ function updateSubjectAverageChart(students) {
 
     const labels = filteredSubjects.map(([key]) => subjectLabels[key] || key);
     const data = filteredSubjects.map(([, avg]) => avg);
-    const backgroundColors = labels.map((_, i) => dynamicSubjectColors[i % dynamicSubjectColors.length]);
+    const backgroundColors = labels.map((label, i) => dynamicSubjectColors[subjectKeys.indexOf(filteredSubjects[i][0])] || '#ccc');
 
     subjectAverageChart = updateChart(subjectAverageChart, ctx, 'bar', {
         labels: labels,
@@ -321,13 +354,13 @@ function updateSubjectAverageChart(students) {
                 align: 'center',
                 color: '#000',
                 font: { family: "'Cairo', sans-serif", weight: 'bold', size: 13 },
-                formatter: (value) => value.toFixed(1) + '%'
+                formatter: (value) => formatPercentage(value)
             }
         },
         onClick: (evt, elements) => {
             if (elements.length > 0) {
                 const idx = elements[0].index;
-                alert(`تفاصيل المادة: ${labels[idx]}\nمتوسط الدرجة: ${data[idx].toFixed(2)}`);
+                alert(`تفاصيل المادة: ${labels[idx]}\nمتوسط النسبة: ${formatPercentage(data[idx])}`);
             }
         }
     }, [window.ChartDataLabels]);
@@ -335,69 +368,154 @@ function updateSubjectAverageChart(students) {
 
 function updateGradeDistributionChart(students) {
     const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
-    const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'الغياب': 0 };
+    const chartContainer = document.querySelector('#gradeDistributionChart').closest('.bg-white');
+    const h2 = chartContainer.querySelector('h2');
+    const p = chartContainer.querySelector('p');
+    let chartData, chartOptions, total;
 
-    students.forEach(student => gradeCounts[getGradeCategory(student.overall)]++);
-    const total = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
+    if (students.length === 1) {
+        // Special mode: Group subjects by category for a single student
+        const student = students[0];
+        h2.textContent = `توزيع تقديرات مواد الطالب: ${student.name}`;
+        p.textContent = `يقسم هذا المخطط مواد الطالب حسب التقدير. مرر الفأرة على أي قسم لرؤية أسماء المواد.`;
 
-    gradeDistributionChart = updateChart(gradeDistributionChart, ctx, 'doughnut', {
-        labels: Object.keys(gradeCounts),
-        datasets: [{ data: Object.values(gradeCounts), backgroundColor: chartColors.grades }]
-    }, {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top', labels: { font: { family: "'Cairo', sans-serif" } } },
-            tooltip: {
-                bodyFont: { family: "'Cairo', sans-serif" },
-                titleFont: { family: "'Cairo', sans-serif" },
-                callbacks: {
-                    label: (context) => {
-                        const data = context.chart.data.datasets[0].data;
-                        const totalInCallback = data.reduce((a, b) => a + b, 0);
-                        const value = context.parsed;
-                        const percent = totalInCallback > 0 ? ((value / totalInCallback) * 100).toFixed(1) : 0;
-                        return `${value} طالب (${percent}%)`;
-                    }
+        const subjectsByCategory = { 'ممتاز': [], 'جيد جداً': [], 'جيد': [], 'مقبول': [], 'ضعيف': [], 'الغياب': [] };
+
+        Object.keys(student.scores).forEach(key => {
+            if (key !== 'behavior') {
+                const rawScore = student.scores[key] ?? 0;
+                const percentage = getScoreAsPercentage(rawScore);
+                const category = getGradeCategory(percentage);
+                const subjectName = subjectLabels[key] || key;
+                // Only add if the subject has a score > 0, unless the category is 'الغياب'
+                if (rawScore > 0 || category === 'الغياب') {
+                    subjectsByCategory[category].push(subjectName);
                 }
-            },
-            datalabels: {
-                display: false // Disable datalabels on the chart
-            },
-            legend: {
-                position: 'right', // Position legend to the right for a side table effect
-                labels: {
-                    font: { family: "'Cairo', sans-serif" },
-                    generateLabels: (chart) => {
-                        const data = chart.data.datasets[0].data;
-                        const labels = chart.data.labels;
-                        const backgroundColors = chart.data.datasets[0].backgroundColor;
-                        const totalInCallback = data.reduce((a, b) => a + b, 0);
+            }
+        });
 
-                        return labels.map((label, i) => {
-                            const value = data[i];
-                            const percentage = totalInCallback > 0 ? ((value / totalInCallback) * 100).toFixed(1) : 0;
-                            return {
-                                text: `${label}: ${value} (${percentage}%)`, // Show label, count, and percentage
-                                fillStyle: backgroundColors[i],
-                                strokeStyle: backgroundColors[i],
-                                lineWidth: 1,
-                                hidden: isNaN(value) || value === 0, // Hide if no data
-                                index: i
-                            };
-                        });
+        const labels = Object.keys(subjectsByCategory);
+        const data = labels.map(cat => subjectsByCategory[cat].length);
+        const backgroundColors = chartColors.grades; // Use predefined category colors
+        total = data.reduce((a, b) => a + b, 0);
+
+        chartData = {
+            labels: labels,
+            datasets: [{ data: data, backgroundColor: backgroundColors }]
+        };
+        chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    titleFont: { family: "'Cairo', sans-serif" },
+                    bodyFont: { family: "'Cairo', sans-serif" },
+                    callbacks: {
+                        title: (context) => context[0].label,
+                        afterBody: (context) => {
+                            // Show subject names in the tooltip
+                            const category = context[0].label;
+                            const subjectList = subjectsByCategory[category];
+                            return subjectList.length > 0 ? [''].concat(subjectList) : [];
+                        }
+                    }
+                },
+                datalabels: { display: false },
+                legend: {
+                    position: 'right',
+                    labels: {
+                        font: { family: "'Cairo', sans-serif" },
+                        generateLabels: (chart) => { // Corrected generateLabels
+                            const data = chart.data.datasets[0].data;
+                            return chart.data.labels.map((label, i) => {
+                                const value = data[i];
+                                return {
+                                    text: `${label}: ${value} مواد`,
+                                    fillStyle: chart.data.datasets[0].backgroundColor[i],
+                                    strokeStyle: chart.data.datasets[0].backgroundColor[i],
+                                    lineWidth: 1,
+                                    hidden: isNaN(value) || value === 0,
+                                    index: i
+                                };
+                            });
+                        }
                     }
                 }
             }
-        }
-    }, [window.ChartDataLabels]);
+        };
+    } else {
+        // Default mode: Show overall grade distribution for multiple students
+        h2.textContent = 'توزيع التقديرات';
+        p.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
+        const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'الغياب': 0 };
+
+        const subjectFilterValues = getSelectedFilterValues('subjectFilter');
+        const selectedSubjectKeyForChart = (subjectFilterValues.length === 1 && subjectFilterValues[0] !== 'الكل')
+            ? subjectKeys.find(key => subjectLabels[key] === subjectFilterValues[0])
+            : null;
+
+        students.forEach(student => {
+            const scoreToCategorize = selectedSubjectKeyForChart ? getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0) : student.overall;
+
+            gradeCounts[getGradeCategory(scoreToCategorize)]++;
+        });
+
+        total = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
+
+        chartData = {
+            labels: Object.keys(gradeCounts),
+            datasets: [{ data: Object.values(gradeCounts), backgroundColor: chartColors.grades }]
+        };
+        chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    bodyFont: { family: "'Cairo', sans-serif" },
+                    titleFont: { family: "'Cairo', sans-serif" },
+                    callbacks: {
+                        label: (context) => {
+                            const totalInCallback = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            const value = context.parsed;
+                            const percent = totalInCallback > 0 ? (value / totalInCallback) * 100 : 0;
+                            return `${value} طالب (${formatPercentage(percent)})`;
+                        }
+                    }
+                },
+                datalabels: { display: false },
+                legend: {
+                    position: 'right',
+                    labels: {
+                        font: { family: "'Cairo', sans-serif" },
+                        generateLabels: (chart) => {
+                            const data = chart.data.datasets[0].data;
+                            const totalInCallback = data.reduce((a, b) => a + b, 0);
+                            return chart.data.labels.map((label, i) => {
+                                const value = data[i];
+                                const percentage = totalInCallback > 0 ? (value / totalInCallback) * 100 : 0;
+                                return {
+                                    text: `${label}: ${value} طلاب (${formatPercentage(percentage)})`,
+                                    fillStyle: chart.data.datasets[0].backgroundColor[i],
+                                    hidden: isNaN(value) || value === 0,
+                                    index: i
+                                };
+                            });
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    gradeDistributionChart = updateChart(gradeDistributionChart, ctx, 'doughnut', chartData, chartOptions, [window.ChartDataLabels]);
 
     if (total === 0) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.font = "16px 'Cairo', sans-serif";
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
-        ctx.fillText('لا يوجد طلاب لعرض توزيع التقديرات', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        const message = students.length === 1 ? 'لا توجد مواد لعرضها' : 'لا يوجد طلاب لعرض توزيع التقديرات';
+        ctx.fillText(message, ctx.canvas.width / 2, ctx.canvas.height / 2);
     }
 }
 
@@ -435,8 +553,8 @@ function updateGradeStudentDistributionChart(students) {
                         const data = context.chart.data.datasets[0].data;
                         const totalInCallback = data.reduce((a, b) => a + b, 0);
                         const value = context.parsed;
-                        const percent = totalInCallback > 0 ? ((value / totalInCallback) * 100).toFixed(1) : 0;
-                        return `${value} طالب (${percent}%)`;
+                        const percent = totalInCallback > 0 ? (value / totalInCallback) * 100 : 0;
+                        return `${value} طالب (${formatPercentage(percent)})`;
                     }
                 }
             },
@@ -447,19 +565,16 @@ function updateGradeStudentDistributionChart(students) {
                 position: 'right', // Position legend to the right for a side table effect
                 labels: {
                     font: { family: "'Cairo', sans-serif" },
-                    generateLabels: (chart) => {
+                    generateLabels: (chart) => { // Corrected generateLabels
                         const data = chart.data.datasets[0].data;
-                        const labels = chart.data.labels;
-                        const backgroundColors = chart.data.datasets[0].backgroundColor;
                         const totalInCallback = data.reduce((a, b) => a + b, 0);
-
-                        return labels.map((label, i) => {
+                        return chart.data.labels.map((label, i) => {
                             const value = data[i];
-                            const percentage = totalInCallback > 0 ? ((value / totalInCallback) * 100).toFixed(1) : 0;
+                            const percentage = totalInCallback > 0 ? (value / totalInCallback) * 100 : 0;
                             return {
-                                text: `${label}: ${value} (${percentage}%)`, // Show label, count, and percentage
-                                fillStyle: backgroundColors[i],
-                                strokeStyle: backgroundColors[i],
+                                text: `${label}: ${value} طالب (${formatPercentage(percentage)})`,
+                                fillStyle: chart.data.datasets[0].backgroundColor[i],
+                                strokeStyle: chart.data.datasets[0].backgroundColor[i],
                                 lineWidth: 1,
                                 hidden: isNaN(value) || value === 0, // Hide if no data
                                 index: i
@@ -491,7 +606,7 @@ function updateAverageGradeByClassChart(students) {
     });
 
     const labels = Object.keys(gradeAverages).sort();
-    const data = labels.map(grade => (gradeAverages[grade] / gradeCounts[grade]).toFixed(2));
+    const data = labels.map(grade => (gradeAverages[grade] / gradeCounts[grade]));
     const total = data.reduce((a, b) => a + b, 0); // Define total here
 
     averageGradeByClassChart = updateChart(averageGradeByClassChart, ctx, 'bar', {
@@ -525,7 +640,7 @@ function updateAverageGradeByClassChart(students) {
                 align: 'center',
                 color: '#000',
                 font: { family: "'Cairo', sans-serif", weight: 'bold', size: 13 },
-                formatter: (value) => value + '%'
+                formatter: (value) => formatPercentage(value)
             }
         }
     }, [window.ChartDataLabels]);
@@ -553,11 +668,9 @@ function updateStudentsTable(students) {
             !students.every(student => (student.scores[key] ?? null) === null || student.scores[key] === 0)
         );
     } else {
-        // Show only selected subjects that have actual data (not all zeros) among the filtered students
+        // When subjects are filtered, show exactly those subjects.
         const selectedSubjectKeys = subjectFilterValues.map(label => subjectKeyMap[label]).filter(Boolean);
-        columnsToShow = selectedSubjectKeys.filter(key => 
-            students.some(student => (student.scores[key] ?? 0) > 0)
-        );
+        columnsToShow = selectedSubjectKeys;
     }
 
     // The time column is no longer displayed in the table, but its filter remains functional.
@@ -583,43 +696,56 @@ function updateStudentsTable(students) {
     sortedStudents.forEach((student, idx) => {
         const row = document.createElement('tr');
         row.className = "bg-white border-b hover:bg-slate-50";
+        
+        const createCell = (content, classes = '') => {
+            const cell = document.createElement('td');
+            cell.className = classes;
+            cell.textContent = content;
+            return cell;
+        };
 
-        const cells = [
-            `<td class="px-2 py-2 font-bold">${idx + 1}</td>`,
-            `<td class="px-3 py-2 font-medium text-slate-900 whitespace-nowrap">${student.name}</td>`,
-            `<td class="px-2 py-2">${student.grade}</td>`,
-            `<td class="px-2 py-2">${student.section}</td>`,
-            ...columnsToShow.map(key => `<td class="px-1 py-2">${student.scores[key] ?? '-'}</td>`)
-        ];
+        row.appendChild(createCell(idx + 1, 'px-2 py-2 font-bold'));
+        row.appendChild(createCell(student.name, 'px-3 py-2 font-medium text-slate-900 whitespace-nowrap'));
+        row.appendChild(createCell(student.grade, 'px-2 py-2'));
+        row.appendChild(createCell(student.section, 'px-2 py-2'));
 
+        columnsToShow.forEach(key => {
+            const score = student.scores[key];
+            row.appendChild(createCell(score != null ? Math.round(score) : '-', 'px-1 py-2'));
+        });
+
+        row.appendChild(createCell(student.totalScore != null ? Math.round(student.totalScore) : '-', 'px-2 py-2 font-bold text-blue-600'));
+        
         if (!hidePercentageColumn) {
-            cells.push(`<td class="px-2 py-2 font-bold">${student.percent ?? '-'}</td>`);
+            // Use a specific cell for percentage to handle the format correctly
+            const percentageCell = document.createElement('td');
+            percentageCell.className = 'px-2 py-2 font-bold';
+            percentageCell.textContent = formatPercentage(student.percent);
+            row.appendChild(percentageCell);
         }
-        cells.push(`<td class="px-2 py-2 font-bold">${student.category}</td>`); // Use pre-calculated category
+        row.appendChild(createCell(student.category, `px-2 py-2 font-bold ${getCategoryColorClass(student.category)}`));
 
-        row.innerHTML = cells.join('');
         fragment.appendChild(row);
     });
     tableBody.appendChild(fragment);
 }
 
 function updateTableHeader(columnsToShow, hidePercentageColumn) {
-    const thead = document.querySelector('table thead tr');
+    const thead = document.querySelector('table thead');
     if (!thead) return;
 
     const baseHeaders = ['الترتيب', 'اسم الطالب', 'الصف', 'القسم'];
     const dynamicSubjectHeaders = columnsToShow.map(key => subjectLabels[key]);
-    const endHeaders = ['التقدير'];
+    // Add 'المجموع' and then conditionally add 'النسبة'
+    const endHeaders = ['المجموع', 'التقدير'];
     if (!hidePercentageColumn) {
-        endHeaders.unshift('النسبة');
+        endHeaders.splice(1, 0, 'النسبة'); // Insert 'النسبة' after 'المجموع'
     }
     
     let allHeaders = [...baseHeaders, ...dynamicSubjectHeaders, ...endHeaders];
 
     thead.innerHTML = `
-        <tr>
-            ${allHeaders.map(header => `<th scope="col" class="px-2 py-2 whitespace-nowrap">${header}</th>`).join('')}
-        </tr>
+        <tr>${allHeaders.map(header => `<th scope="col" class="px-2 py-3 whitespace-nowrap">${header}</th>`).join('')}</tr>
     `;
 }
 //Kamal
@@ -700,12 +826,29 @@ let gradeFilterDropdown, sectionFilterDropdown, categoryFilterDropdown, subjectF
 
 function setupEventListeners() {
     document.getElementById('levelFilter').addEventListener('change', updateDashboard);
+    document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
+    document.getElementById('studentSearchInput').addEventListener('input', updateDashboard);
 
     gradeFilterDropdown = initializeMultiSelectDropdown('gradeFilter');
     sectionFilterDropdown = initializeMultiSelectDropdown('sectionFilter');
     categoryFilterDropdown = initializeMultiSelectDropdown('categoryFilter');
     subjectFilterDropdown = initializeMultiSelectDropdown('subjectFilter');
     timeFilterDropdown = initializeMultiSelectDropdown('timeFilter');
+
+    const maxScoreInput = document.getElementById('maxScoreInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const maxScoreError = document.getElementById('maxScoreError');
+
+    maxScoreInput.addEventListener('input', () => {
+        const value = parseInt(maxScoreInput.value, 10);
+        if (value >= 10 && value <= 100) {
+            analyzeBtn.disabled = false;
+            maxScoreError.textContent = '';
+        } else {
+            analyzeBtn.disabled = true;
+            maxScoreError.textContent = 'الدرجة يجب أن تكون بين 10 و 100.';
+        }
+    });
 
     document.addEventListener('click', (event) => {
         ['gradeFilter', 'sectionFilter', 'categoryFilter', 'subjectFilter', 'timeFilter'].forEach(id => {
@@ -727,18 +870,46 @@ function setupEventListeners() {
     const csvTooltip = document.getElementById('csvTooltip');
     ['focus', 'mouseover'].forEach(event => csvUpload.addEventListener(event, () => csvTooltip.classList.add('tooltip-visible')));
     ['blur', 'mouseout'].forEach(event => csvUpload.addEventListener(event, () => csvTooltip.classList.remove('tooltip-visible')));
-    csvUpload.addEventListener('change', handleCsvUpload);
+    csvUpload.addEventListener('change', handleFileUpload);
 
     document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 }
 
 function resetFilters() {
     document.getElementById('levelFilter').value = 'الكل';
+    document.getElementById('studentSearchInput').value = '';
 
     const multiSelectFilterInstances = [gradeFilterDropdown, sectionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown];
     multiSelectFilterInstances.forEach(instance => {
         instance.reset();
     });
+    updateDashboard();
+}
+
+function runAnalysis() {
+    const maxScoreInput = document.getElementById('maxScoreInput');
+    globalMaxScore = parseInt(maxScoreInput.value, 10);
+
+    if (!globalMaxScore || globalMaxScore < 10 || globalMaxScore > 100) {
+        alert('الرجاء إدخال درجة نهائية صالحة بين 10 و 100.');
+        return;
+    }
+
+    // Recalculate overall percentage for all students based on the new max score
+    allStudentsData.forEach(student => {
+        const subjectPercentages = subjectKeys.map(key => getScoreAsPercentage(student.scores[key] ?? 0));
+        const validPercentages = subjectPercentages.filter(p => p > 0);
+        const averagePercentage = validPercentages.length > 0
+            ? validPercentages.reduce((a, b) => a + b, 0) / validPercentages.length
+            : 0;
+        student.overall = averagePercentage;
+        student.percent = averagePercentage; // Store the calculated percentage for table display
+        student.category = getGradeCategory(averagePercentage);
+    });
+
+    document.getElementById('filtersSection').classList.remove('hidden');
+    document.getElementById('dashboardContent').classList.remove('hidden');
+    updateFilterOptions();
     updateDashboard();
 }
 
@@ -750,65 +921,119 @@ const exportChart = (chartId, filename) => {
     link.click();
 };
 
-const handleCsvUpload = (e) => {
+const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const statusMsg = document.getElementById('csvStatusMsg');
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-        displayStatusMessage(statusMsg, 'الملف يجب أن يكون بصيغة CSV.', 'rose');
+    const fileName = file.name.toLowerCase();
+    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+    // Re-enable CSV support
+    const isCsv = fileName.endsWith('.csv');
+
+    if (!isCsv && !isExcel) {
+        displayStatusMessage(statusMsg, 'الملف يجب أن يكون بصيغة CSV أو Excel.', 'rose');
         return;
     }
 
-    Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
+    if (isCsv) {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                processParsedData(results.data, results.meta.fields);
+            },
+            error: () => displayStatusMessage(statusMsg, 'تعذر قراءة ملف CSV. تأكد من الصيغة.', 'rose')
+        });
+    } else if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
             try {
-                const fileHeaders = results.meta.fields || [];
-                const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'سلوك', 'النسبة', 'نوع التحليل'];
-                
-                subjectLabels = {};
-                subjectKeys = [];
-                fileHeaders.forEach(header => {
-                    if (!fixedHeaders.includes(header)) {
-                        const key = header.replace(/\s/g, '').toLowerCase();
-                        subjectLabels[key] = header;
-                        subjectKeys.push(key);
-                    }
-                });
+                const data = event.target.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                allStudentsData = results.data.map(row => {
-                    const scores = {};
-                    subjectKeys.forEach(key => {
-                        scores[key] = Number(row[subjectLabels[key]]) || 0;
-                    });
-                    scores['behavior'] = Number(row['سلوك']) || 0;
-
-                    const overallScore = Number(row['النسبة']) || 0;
-                    return {
-                        name: row['اسم الطالب'],
-                        grade: row['الصف'],
-                        section: row['القسم'],
-                        scores: scores,
-                        percent: overallScore,
-                        overall: overallScore,
-                        time: row['نوع التحليل'] || null,
-                        category: getGradeCategory(overallScore) // Pre-calculate category
-                    };
-                });
-                dynamicSubjectColors = generateColors(subjectKeys.length); // Generate colors based on the number of subjects
-                updateFilterOptions();
-                updateDashboard();
-                displayStatusMessage(statusMsg, 'تم رفع الملف بنجاح!', 'teal');
+                if (jsonData.length === 0) {
+                    displayStatusMessage(statusMsg, 'ملف Excel فارغ أو لا يمكن قراءته.', 'rose');
+                    return;
+                }
+                const headers = Object.keys(jsonData[0]);
+                processParsedData(jsonData, headers);
             } catch (err) {
-                console.error(err);
-                displayStatusMessage(statusMsg, 'حدث خطأ أثناء معالجة الملف.', 'rose');
+                console.error("Error processing Excel file:", err);
+                displayStatusMessage(statusMsg, 'حدث خطأ أثناء معالجة ملف Excel.', 'rose');
             }
-        },
-        error: () => displayStatusMessage(statusMsg, 'تعذر قراءة الملف. تأكد من الصيغة.', 'rose')
-    });
+        };
+        reader.onerror = () => {
+            displayStatusMessage(statusMsg, 'تعذر قراءة ملف Excel.', 'rose');
+        };
+        reader.readAsArrayBuffer(file);
+    }
 };
+
+function processParsedData(data, headers) {
+    const statusMsg = document.getElementById('csvStatusMsg');
+    try {
+        const fileHeaders = (headers || []).map(h => String(h).trim());
+        const requiredHeaders = ['اسم الطالب', 'الصف'];
+        const missingHeaders = requiredHeaders.filter(h => !fileHeaders.includes(h));
+        if (missingHeaders.length > 0) {
+            displayStatusMessage(statusMsg, `الملف ينقصه الأعمدة المطلوبة: ${missingHeaders.join(', ')}`, 'rose');
+            return;
+        }
+
+        const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'سلوك', 'النسبة', ' الزمن'];
+        
+        subjectLabels = {};
+        subjectKeys = [];
+        fileHeaders.forEach(header => {
+            if (!fixedHeaders.includes(header)) {
+                const cleanHeader = header;
+                const key = String(cleanHeader).replace(/\s/g, '').toLowerCase();
+                subjectLabels[key] = cleanHeader;
+                subjectKeys.push(key);
+            }
+        });
+
+        // Normalize row keys by trimming them, to match the trimmed headers
+        const normalizedData = data.map(row => {
+            const newRow = {};
+            for (const key in row) {
+                newRow[String(key).trim()] = row[key];
+            }
+            return newRow;
+        });
+
+        allStudentsData = normalizedData.map(row => {
+            const scores = {};
+            let totalScore = 0;
+            subjectKeys.forEach(key => {
+                // Ensure the key exists in the row, otherwise default to 0.
+                // subjectLabels[key] is the trimmed header name, which matches the keys in the `row` object.
+                const score = Number(row[subjectLabels[key]]) || 0;
+                scores[key] = score;
+                totalScore += score;
+            });
+            // Access other fields safely
+            scores['behavior'] = Number(row['سلوك']) || 0; // Behavior score remains raw
+            // The 'percent' and 'overall' from the file are now ignored. They will be calculated on analysis.
+            return { name: row['اسم الطالب'], grade: row['الصف'], section: row['القسم'], scores: scores, percent: 0, totalScore: totalScore, overall: 0, time: row['الزمن '] || null, category: 'N/A' };
+        });
+
+        dynamicSubjectColors = generateColors(subjectKeys.length);
+        
+        // Enable the next step
+        document.getElementById('maxScoreInput').disabled = false;
+        displayStatusMessage(statusMsg, 'تم رفع الملف. أدخل الدرجة النهائية ثم اضغط "تحليل النتائج".', 'teal', 8000);
+
+    } catch (err) {
+        console.error("Error processing data:", err);
+        displayStatusMessage(statusMsg, 'حدث خطأ أثناء معالجة البيانات.', 'rose');
+    }
+}
 
 const displayStatusMessage = (element, message, type, duration = 4000) => {
     element.textContent = message;
@@ -827,7 +1052,7 @@ function updateFilterOptions() {
 
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    updateDashboard();
+    // Do not run updateDashboard on load, wait for user action
 
     document.getElementById('helpBtn').addEventListener('click', () => {
         document.getElementById('helpModal').classList.remove('hidden');

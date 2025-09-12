@@ -34,17 +34,30 @@
         </div>
 
     <div class="sticky top-6 right-12 z-50 flex flex-col items-end gap-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 border border-slate-200" style="max-width: 300px;">
-    <label class="block text-teal-700 mb-1">يرجى رفع ملف درجات الطلاب هنا لتحليلها</label>
+    <label class="block text-teal-700 mb-1">1. يرجى رفع ملف درجات الطلاب هنا لتحليلها</label>
     <div class="relative w-full">
-        <input type="file" id="csvUpload" accept=".csv" class="block text-sm text-slate-500 mb-2 cursor-pointer w-full border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+        <input type="file" id="csvUpload" accept=".csv,.xlsx,.xls" class="block text-sm text-slate-500 mb-2 cursor-pointer w-full border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
         <div id="csvStatusMsg" class="mt-2 w-full text-center text-sm rounded-lg py-2 transition-all duration-300" style="display:none;"></div>
     <div id="csvTooltip" class="absolute right-0 mt-2 w-80 bg-slate-100 rounded-lg p-3 text-xs text-slate-600 shadow-lg opacity-0 transition-opacity pointer-events-none border border-teal-200" style="white-space:normal;">
-            <span class="font-semibold text-teal-700">ملاحظة مهمة:</span>  يجب أن يكون نوع الملف اكسل بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span> وتكون البيانات نظيفة لا يوجد فيها اخطاء، ويكون لكل عمود عنوان واضح، في أول صف مثل (اسم الطالب، الصف، القسم،،النسبة،اسماء المواد الدراسية ..) حتى تتم عملية التحليل بنجاح..وشكراً<br>
+            <span class="font-semibold text-teal-700">ملاحظة مهمة:</span>  يجب أن يكون نوع الملف Excel أو CSV وتكون البيانات نظيفة لا يوجد فيها اخطاء، ويكون لكل عمود عنوان واضح، في أول صف مثل (اسم الطالب، الصف، القسم،اسماء المواد الدراسية ..) حتى تتم عملية التحليل بنجاح..وشكراً<br>
         </div>
         </div>
     </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10">
+        <div id="analysisControls" class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10">
+            <div class="flex flex-wrap items-center justify-center gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label for="maxScoreInput" class="block text-sm font-medium text-slate-600 mb-1">2. أدخل الدرجة النهائية الموحدة</label>
+                    <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" disabled>
+                    <p id="maxScoreError" class="text-red-500 text-xs mt-1 h-4"></p>
+                </div>
+                <div class="mt-5">
+                    <button id="analyzeBtn" class="bg-teal-500 text-white py-2 px-6 rounded-lg hover:bg-teal-600 transition-colors shadow disabled:bg-slate-300 disabled:cursor-not-allowed">3. تحليل النتائج</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="filtersSection" class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10 hidden">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div class="md:col-span-1">
                     <h2 class="text-lg text-center font-semibold text-slate-600">خيارات التصفية</h2>
@@ -139,7 +152,7 @@
                         </div>
                     </div>
                     <div class="flex-1 min-w-[150px] relative">
-                        <label for="timeFilter" class="block text-sm font-medium text-slate-500 mb-1">نوع التحليل</label>
+                        <label for="timeFilter" class="block text-sm font-medium text-slate-500 mb-1">الزمن </label>
                         <button id="timeFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
                             <span id="timeFilterDisplay">الكل</span>
                             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -153,6 +166,10 @@
                             </div>
                         </div>
                     </div>
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="studentSearchInput" class="block text-sm font-medium text-slate-500 mb-1">بحث بالاسم</label>
+                        <input type="text" id="studentSearchInput" placeholder="ابحث عن طالب..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
+                    </div>
                     <button id="resetFiltersBtn" class="bg-slate-100 text-red-500 py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors shadow flex items-center gap-1 text-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 8l6 6v4l-4 2v-6l-6-6m12 0l3 3m0-3l-3 3" />
@@ -163,7 +180,7 @@
             </div>
         </div>
 
-        <main>
+        <main id="dashboardContent" class="hidden">
             <section id="stats-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                     <div class="bg-teal-100 p-3 rounded-full">
@@ -318,7 +335,7 @@
             </section>
 
             <section class="bg-white p-6 rounded-xl shadow-md">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
                     <h2 id="studentsTableTitle" class="text-xl font-bold text-slate-700">قائمة الطلاب والدرجات</h2>
                     <button id="downloadExcelBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -483,15 +500,14 @@ document.addEventListener('DOMContentLoaded', function () {
             <h2 class="text-xl font-bold mb-6">📘 تعليمات الاستخدام</h2>
             <ol class="list-decimal pl-5 space-y-2 text-sm">
   <li>
-    جهّز بياناتك في ملف Excel بحيث يحتوي الصف الأعلى على عناوين واضحة مثل:  
-    <span class="font-mono bg-slate-100 px-1 rounded">اسم الطالب، الصف، القسم، أسماء المواد،النسبة،نوع التحليل</span>.  
-    يجب أن تكون الدرجات من 100، والنسبة محسوبة بحسب المتوسط الحسابي.  
+    جهّز بياناتك في ملف Excel بحيث يحتوي الصف الأعلى على عناوين واضحة مثل:
+    <span class="font-mono bg-slate-100 px-1 rounded">اسم الطالب، الصف، القسم، أسماء المواد، الزمن </span>.
     يمكنك تحميل قالب مقترح لإدخال الدرجات والبيانات فيه من هنا:  
-    <a href="https://docs.google.com/spreadsheets/d/10c3PvB8g6WpXrQBaHW0OB8v0yJFqSDc8/export?format=xlsx" target="_blank" class="text-blue-600 underline">📥 تحميل قالب Excel المقترح</a>  
-    ثم احفظ الملف بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span>.
-  </li>
-  
-  <li>ابدأ برفع ملف الدرجات بصيغة <span class="font-mono bg-slate-200 px-1 rounded">CSV</span> من خلال زر "رفع ملف درجات الطلاب".</li>
+    <a href="https://docs.google.com/spreadsheets/d/10c3PvB8g6WpXrQBaHW0OB8v0yJFqSDc8/export?format=xlsx" target="_blank" class="text-blue-600 underline">📥 تحميل قالب Excel المقترح</a>   
+  <li>ابدأ برفع ملف الدرجات بصيغة <span class="font-mono bg-slate-200 px-1 rounded">Excel أو CSV</span> من خلال زر "رفع ملف درجات الطلاب".</li>
+  <li>انتظر حتى يتم تحميل الملف ومعالجة البيانات. قد يستغرق ذلك بضع ثوانٍ حسب حجم الملف.</li>
+  <li>بعد ان تظهر رسالة تم تحميل الملف ، يتم ادخال الدرجة النهائية للمواد التي تريد التحليل عليها فمثلاً أإذاا كان تحريري ادخل 60 وإذا كان نهائي ادخل 100 وهكذا</li>
+  <li>انقر على تحليل النتائج لتظهر المخططات والجداول الخاصة بالتحليل</li>
   <li>استخدم الفلاتر لاختيار الصف، المادة، والقسم وغيره من عوامل التصفية .</li>
   <li>يمكنك تحديد أكثر من خيار من كل فلتر باستخدام القوائم المنسدلة متعددة الاختيارات.</li>
   <li>يمكنك تصدير الرسم البياني والجدول بعد التصفية إلى جهازك واستخدامها في تقاريرك</li>
