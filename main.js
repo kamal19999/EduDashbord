@@ -1,10 +1,13 @@
 let subjectAverageChart, gradeDistributionChart, gradeStudentDistributionChart, averageGradeByClassChart;
 let allStudentsData = [];
+let amiriFont = null; // To hold the base64 font
+let amiriBoldFont = null; // To hold the bold font
+let analysisHasRun = false; // لتتبع ما إذا كان التحليل قد تم
 
 let subjectLabels = {}; // Maps key to clean name, e.g., { 'math': 'الرياضيات' }
 let subjectKeys = [];   // e.g., ['math', 'science']
 let globalMaxScore = 100; // Will be set by the user
-//الحمد لله
+//الحمد لله وسبحان الله
 const getScoreAsPercentage = (score) => {
     if (globalMaxScore === 0) return 0;
     return (score / globalMaxScore) * 100;
@@ -31,17 +34,17 @@ const formatPercentage = (value) => {
 const getCategoryColorClass = (category) => {
     switch (category) {
         case 'ممتاز':
-            return 'text-green-600'; // أخضر
+            return 'bg-green-100 text-green-800';
         case 'جيد جداً':
-            return 'text-blue-600'; // أزرق
+            return 'bg-blue-100 text-blue-800';
         case 'جيد':
-            return 'text-amber-500'; // كهرماني
+            return 'bg-amber-100 text-amber-800';
         case 'مقبول':
-            return 'text-purple-600'; // بنفسجي
+            return 'bg-purple-100 text-purple-800';
         case 'ضعيف':
-            return 'text-red-600'; // أحمر
+            return 'bg-red-100 text-red-800';
         case 'الغياب':
-            return 'text-black'; // أسود
+            return 'bg-slate-200 text-slate-800';
         default:
             return 'text-slate-700'; // افتراضي
     }
@@ -87,7 +90,7 @@ const updateFilterDisplay = (filterId, selectedValues) => {
 };
 
 let debounceTimer;
-function updateDashboard() {
+function updateDashboard(onCompleteCallback = null) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
     const gradeFilterValues = getSelectedFilterValues('gradeFilter');
@@ -184,14 +187,74 @@ function updateDashboard() {
     updateGradeStudentDistributionChart(filteredStudents); // New chart
     updateAverageGradeByClassChart(filteredStudents); // New chart
     updateStudentsTable(filteredStudents);
+
+    if (onCompleteCallback) {
+        onCompleteCallback();
+    }
     }, 100); // Debounce for 100ms
 }
 
+const animateCounter = (elementId, finalValue, duration = 1500, isPercentage = false) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    // Parse the starting value, removing any non-numeric characters like '%'
+    let startValue = parseFloat(element.textContent.replace(/[^0-9.-]+/g, "")) || 0;
+    
+    // If the new value is the same as the old, no need to animate
+    if (startValue === finalValue) {
+        if (isPercentage) {
+            element.textContent = formatPercentage(finalValue);
+        } else {
+            element.textContent = Math.round(finalValue);
+        }
+        return;
+    }
+
+    let startTime = null;
+
+    const step = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        const currentValue = startValue + (finalValue - startValue) * progress;
+
+        if (isPercentage) {
+            element.textContent = formatPercentage(currentValue);
+        } else {
+            element.textContent = Math.floor(currentValue);
+        }
+
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+};
+
 function updateStatsCards(students) {
-    document.getElementById('totalStudents').textContent = students.length;
+    animateCounter('totalStudents', students.length);
+
+    // Calculate counts for new cards
+    let successCount = 0;
+    let failureCount = 0;
+    let absenceCount = 0;
+
+    students.forEach(student => {
+        const category = student.category;
+        if (['ممتاز', 'جيد جداً', 'جيد', 'مقبول'].includes(category)) {
+            successCount++;
+        } else if (category === 'ضعيف') {
+            failureCount++;
+        } else if (category === 'الغياب') {
+            absenceCount++;
+        }
+    });
+    animateCounter('successCount', successCount);
+    animateCounter('failureCount', failureCount);
+    animateCounter('absenceCount', absenceCount);
 
     const averageScoreValue = students.length > 0 ? (students.reduce((acc, student) => acc + student.overall, 0) / students.length) : 0;
-    document.getElementById('averageScore').textContent = formatPercentage(averageScoreValue);
+    animateCounter('averageScore', averageScoreValue, 1500, true);
 
     const subjectAvgs = calculateSubjectAverages(students);
     const sortedSubjects = Object.entries(subjectAvgs).filter(([key, avg]) => key !== 'behavior' && avg > 0).sort(([, a], [, b]) => b - a);
@@ -827,6 +890,12 @@ let gradeFilterDropdown, sectionFilterDropdown, categoryFilterDropdown, subjectF
 function setupEventListeners() {
     document.getElementById('levelFilter').addEventListener('change', updateDashboard);
     document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
+    document.getElementById('resetAppBtn').addEventListener('click', () => {
+        // إظهار رسالة تأكيد قبل إعادة تحميل الصفحة
+        if (confirm('سيتم إلغاء جميع بياناتك الحالية، لفتح صفحة جديدة.. هل انت متأكد من إعادة الضبط؟')) {
+            location.reload();
+        }
+    });
     document.getElementById('studentSearchInput').addEventListener('input', updateDashboard);
 
     gradeFilterDropdown = initializeMultiSelectDropdown('gradeFilter');
@@ -872,6 +941,21 @@ function setupEventListeners() {
     ['blur', 'mouseout'].forEach(event => csvUpload.addEventListener(event, () => csvTooltip.classList.remove('tooltip-visible')));
     csvUpload.addEventListener('change', handleFileUpload);
 
+    // Report Modal Listeners
+    document.getElementById('exportReportBtn').addEventListener('click', () => {
+        document.getElementById('reportModal').classList.remove('hidden');
+    });
+    document.getElementById('cancelReportBtn').addEventListener('click', () => {
+        document.getElementById('reportModal').classList.add('hidden');
+    });
+    document.getElementById('generateReportBtn').addEventListener('click', generatePdfReport);
+    document.getElementById('reportSectionAll').addEventListener('change', (e) => {
+        document.querySelectorAll('.report-section').forEach(checkbox => {
+            checkbox.checked = e.target.checked;
+        });
+    });
+
+
     document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 }
 
@@ -895,22 +979,41 @@ function runAnalysis() {
         return;
     }
 
-    // Recalculate overall percentage for all students based on the new max score
-    allStudentsData.forEach(student => {
-        const subjectPercentages = subjectKeys.map(key => getScoreAsPercentage(student.scores[key] ?? 0));
-        const validPercentages = subjectPercentages.filter(p => p > 0);
-        const averagePercentage = validPercentages.length > 0
-            ? validPercentages.reduce((a, b) => a + b, 0) / validPercentages.length
-            : 0;
-        student.overall = averagePercentage;
-        student.percent = averagePercentage; // Store the calculated percentage for table display
-        student.category = getGradeCategory(averagePercentage);
-    });
+    // Show loading overlay
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) {
+        loadingMessage.textContent = 'يرجى الانتظار... جاري تحليل البيانات';
+    }
+    document.getElementById('loadingOverlay').classList.remove('hidden');
 
-    document.getElementById('filtersSection').classList.remove('hidden');
-    document.getElementById('dashboardContent').classList.remove('hidden');
-    updateFilterOptions();
-    updateDashboard();
+    // Use setTimeout to allow the UI to update and show the loader before heavy processing
+    try {
+        // Recalculate overall percentage for all students based on the new max score
+        allStudentsData.forEach(student => {
+            const subjectPercentages = subjectKeys.map(key => getScoreAsPercentage(student.scores[key] ?? 0));
+            const validPercentages = subjectPercentages.filter(p => p > 0);
+            const averagePercentage = validPercentages.length > 0
+                ? validPercentages.reduce((a, b) => a + b, 0) / validPercentages.length
+                : 0;
+            student.overall = averagePercentage;
+            student.percent = averagePercentage; // Store the calculated percentage for table display
+            student.category = getGradeCategory(averagePercentage);
+        });
+
+        analysisHasRun = true; // تم تشغيل التحليل بنجاح
+        document.getElementById('resetAppBtn').classList.remove('hidden'); // إظهار زر إعادة الضبط
+
+        document.getElementById('filtersSection').classList.remove('hidden');
+        document.getElementById('dashboardContent').classList.remove('hidden');
+        updateFilterOptions();
+        // Pass a callback to hide the loader only after the dashboard has finished updating.
+        updateDashboard(() => document.getElementById('loadingOverlay').classList.add('hidden'));
+    } catch (error) {
+        console.error("An error occurred during analysis:", error);
+        alert("حدث خطأ أثناء تحليل البيانات. يرجى مراجعة وحدة التحكم للمزيد من التفاصيل.");
+        // Hide loading overlay in case of an error
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
 }
 
 const exportChart = (chartId, filename) => {
@@ -1035,6 +1138,379 @@ function processParsedData(data, headers) {
     }
 }
 
+async function generatePdfReport() {
+    const { jsPDF } = window.jspdf;
+    const schoolName = document.getElementById('schoolNameInput').value || 'المدرسة';
+    const teacherName = document.getElementById('teacherNameInput').value || 'المستخدم';
+    const logoFile = document.getElementById('schoolLogoInput').files[0];
+    const includeSummary = document.getElementById('reportSectionSummary').checked;
+    const includeStats = document.getElementById('reportSectionStats').checked;
+    const includeCharts = document.getElementById('reportSectionCharts').checked;
+    const includeTable = document.getElementById('reportSectionTable').checked;
+
+    if (!includeSummary && !includeStats && !includeCharts && !includeTable) {
+        alert('يرجى اختيار محور واحد على الأقل للتقرير.');
+        return;
+    }
+
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) {
+        loadingMessage.textContent = 'يرجى الانتظار... يتم إنشاء التقرير';
+    }
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    document.getElementById('reportModal').classList.add('hidden');
+
+    try {
+        // --- PDF Setup ---
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        let yPos = margin;
+
+        // --- Styling ---
+        const primaryColor = '#0d9488'; // teal-600
+        const headerColor = '#1e293b';  // slate-800
+        const textColor = '#334155';    // slate-700
+        const valueColor = '#2563eb';   // blue-600 for stat values
+
+        // --- Read Logo ---
+        let logoDataUrl = null;
+        if (logoFile) {
+            logoDataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(logoFile);
+            });
+        }
+
+        // Add Amiri font for Arabic support
+        if (!amiriFont) {
+            const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf';
+            const response = await fetch(fontUrl);
+            const fontBlob = await response.blob();
+            amiriFont = await new Promise((resolve, reject) => { //NOSONAR
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(fontBlob);
+            });
+        }
+        if (!amiriBoldFont) {
+            const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf';
+            const response = await fetch(fontUrl);
+            const fontBlob = await response.blob();
+            amiriBoldFont = await new Promise((resolve, reject) => { //NOSONAR
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(fontBlob);
+            });
+        }
+        doc.addFileToVFS('Amiri-Regular.ttf', amiriFont); // Add font to virtual file system
+        doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal'); // Register font
+        doc.addFileToVFS('Amiri-Bold.ttf', amiriBoldFont);
+        doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+        doc.setFont('Amiri', 'normal'); // Set font for the entire document
+
+        const checkPageBreak = (neededHeight) => {
+            if (yPos + neededHeight > pageHeight - margin) {
+                doc.addPage();
+                yPos = margin;
+                // Re-draw footer on new page if needed, or handle in footer section
+            }
+        };
+
+        // --- Header ---
+        const headerStartY = yPos;
+        let headerMaxHeight = 0;
+
+        // Add logo if it exists
+        if (logoDataUrl) {
+            const logoProperties = doc.getImageProperties(logoDataUrl);
+            const logoHeight = 15; // Set a fixed height for the logo
+            const logoWidth = (logoProperties.width * logoHeight) / logoProperties.height;
+            doc.addImage(logoDataUrl, 'PNG', margin, headerStartY, logoWidth, logoHeight);
+            headerMaxHeight = Math.max(headerMaxHeight, logoHeight);
+        }
+
+        doc.setTextColor(valueColor); // Set school name color to blue
+        doc.setFontSize(18);
+        doc.text(schoolName, pageWidth - margin, headerStartY + 7, { align: 'right' });
+        yPos = headerStartY + headerMaxHeight + 5;
+
+        // --- Report Title (Centered, with robust Bidi handling) ---
+        doc.setTextColor(primaryColor);
+        doc.setFontSize(22);
+        const titlePart1 = 'تقرير تحليل النتائج بتاريخ  ';
+        const titlePart2 = new Date().toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric', calendar: 'gregory' });
+        const fullTitleWidth = doc.getTextWidth(titlePart1 + titlePart2);
+        const titleStartX = (pageWidth - fullTitleWidth) / 2;
+        doc.text(titlePart1, titleStartX + fullTitleWidth, yPos, { align: 'right' }); // Draw Arabic part from the right
+        doc.text(titlePart2, titleStartX, yPos, { align: 'left' }); // Draw Date part from the left
+        yPos += 8;
+
+        // --- Filter Info (Centered) ---
+        doc.setTextColor(textColor);
+        doc.setFontSize(14);
+        const filterText = document.getElementById('studentsTableTitle').textContent.replace('كشف الطلاب والدرجات', '').replace(' - ', ' ');
+        doc.text(filterText, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 8;
+
+        // --- Separator Line ---
+        doc.setDrawColor(primaryColor);
+        doc.line(margin, yPos, pageWidth - margin, yPos); // Separator line
+        yPos += 10;
+
+        // --- Section: Executive Summary ---
+        if (includeSummary) {
+            checkPageBreak(40); // Check for space
+            doc.setTextColor(primaryColor);
+            doc.setFontSize(18);
+            doc.setFont('Amiri', 'bold');
+            doc.text('ملخص النتائج', pageWidth - margin, yPos, { align: 'right' });
+            doc.setFont('Amiri', 'normal');
+            yPos += 10;
+            
+            // --- Summary Content with Styling ---
+            const summaryData = {
+                total: document.getElementById('totalStudents').textContent,
+                avg: document.getElementById('averageScore').textContent,
+                success: document.getElementById('successCount').textContent,
+                fail: document.getElementById('failureCount').textContent,
+                topSub: document.getElementById('topSubject').textContent,
+                botSub: document.getElementById('bottomSubject').textContent,
+                topCls: document.getElementById('topClass').textContent,
+                botCls: document.getElementById('bottomClass').textContent,
+            };
+
+            const summaryText = `يستعرض هذا التقرير تحليل نتائج لـ ${summaryData.total} طالبًا. بلغ متوسط التقدير العام ${summaryData.avg}. وقد أظهرت النتائج نجاح ${summaryData.success} طالبًا، بينما لم يتمكن ${summaryData.fail} طالبًا من تحقيق درجة النجاح. على صعيد المواد، كانت مادة "${summaryData.topSub}" هي الأعلى أداءً، في حين كانت مادة "${summaryData.botSub}" هي الأقل أداءً. أما على مستوى الصفوف، فقد حقق "${summaryData.topCls}" أعلى متوسط أداء، بينما كان "${summaryData.botCls}" هو الأدنى.`;
+
+            const lineSpacing = 7; // Increased line spacing
+            const summaryLines = doc.splitTextToSize(summaryText, pageWidth - (margin * 2));
+            const summaryHeight = (summaryLines.length * lineSpacing) + 5; // Calculate height of the summary box
+
+            // Draw background for summary
+            doc.setFillColor('#f0fdfa'); // teal-50
+            doc.rect(margin, yPos - 5, pageWidth - (margin * 2), summaryHeight, 'F');
+
+            // Draw summary text with increased line spacing
+            doc.setTextColor(textColor);
+            doc.setFontSize(12);
+            doc.text(summaryLines, pageWidth - margin, yPos, { align: 'right', lineHeightFactor: 1.5 });
+
+            yPos += summaryHeight; // Adjust yPos after the summary box
+        }
+
+        // --- Section 1: Statistics ---
+        if (includeStats) {
+            if (includeSummary) {
+                yPos += 10; // Add space between summary and stats only if summary is included
+            }
+            checkPageBreak(40);
+            doc.setTextColor(primaryColor);
+            doc.setFontSize(18);
+            doc.setFont('Amiri', 'bold');
+            doc.text('الإحصائيات العامة', pageWidth - margin, yPos, { align: 'right' });
+            doc.setFont('Amiri', 'normal');
+            yPos += 10;
+
+            const renderStat = (stat, x, y) => {
+                if (!stat) return;
+                const fullText = `${stat.l}: ${stat.v}`;
+                doc.setTextColor(textColor);
+                doc.text(fullText, x, y, { align: 'right' });
+            };
+
+            // Separate the main stat to be displayed on its own line
+            const mainStat = { l: 'متوسط التقدير العام', v: document.getElementById('averageScore').textContent };
+
+            const otherStats = [
+                { l: 'إجمالي الطلاب', v: document.getElementById('totalStudents').textContent },
+                { l: 'عدد الناجحين', v: document.getElementById('successCount').textContent },
+                { l: 'عدد الراسبين', v: document.getElementById('failureCount').textContent },
+                { l: 'عدد الغياب', v: document.getElementById('absenceCount').textContent },
+                { l: 'أعلى مادة أداءً', v: document.getElementById('topSubject').textContent },
+                { l: 'أقل مادة أداءً', v: document.getElementById('bottomSubject').textContent },
+                { l: 'أعلى صف أداءً', v: document.getElementById('topClass').textContent },
+                { l: 'أدنى صف أداءً', v: document.getElementById('bottomClass').textContent },
+                { l: 'أعلى طالب أداءً', v: document.getElementById('topStudentName').textContent },
+                { l: 'أدنى طالب أداءً', v: document.getElementById('bottomStudentName').textContent },
+               
+            ];
+
+            const stripeColor = '#f1f5f9'; // slate-100
+            const rowHeight = 10;
+            doc.setTextColor(textColor);
+            doc.setFontSize(13); // Slightly larger font for the main stat
+
+            // 1. Draw the main stat on its own line with a background
+            doc.setFillColor(stripeColor);
+            doc.rect(margin, yPos - 7, pageWidth - (margin * 2), rowHeight, 'F');
+            renderStat(mainStat, pageWidth - margin, yPos);
+            yPos += rowHeight;
+
+            doc.setFontSize(12); // Reset font size for other stats
+
+            // 2. Loop through other stats in pairs to create rows
+            for (let i = 0; i < Math.ceil(otherStats.length / 2); i++) {
+                // Stripe rows that are odd in the new sequence (i=1, 3, 5...)
+                if (i % 2 !== 0) {
+                    doc.setFillColor(stripeColor);
+                    doc.rect(margin, yPos - 7, pageWidth - (margin * 2), rowHeight, 'F');
+                }
+
+                renderStat(otherStats[i * 2], pageWidth - margin, yPos);
+                renderStat(otherStats[i * 2 + 1], pageWidth - margin - (pageWidth / 2.5), yPos);
+                yPos += rowHeight;
+            }
+            yPos += 5; // Add some padding after the stats section
+        }
+
+        // --- Section 2: Charts ---
+        if (includeCharts) {
+            const chartIds = ['subjectAverageChart', 'gradeDistributionChart', 'gradeStudentDistributionChart', 'averageGradeByClassChart'];
+            let isFirstChartInSection = true;
+
+            for (const chartId of chartIds) {
+                const chartContainer = document.getElementById(chartId)?.closest('.bg-white');
+                if (chartContainer) {
+                    const canvas = await html2canvas(chartContainer, { scale: 2, backgroundColor: '#ffffff' });
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    const imgWidth = pageWidth - (margin * 4); // Use more width
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    const xCentered = (pageWidth - imgWidth) / 2;
+
+                    if (isFirstChartInSection) {
+                        const titleHeight = 10;
+                        // Check if title AND first chart fit on the current page.
+                        checkPageBreak(titleHeight + imgHeight + 10);
+                        
+                        // Now draw the section title.
+                        doc.setTextColor(primaryColor);
+                        doc.setFontSize(18);
+                        doc.setFont('Amiri', 'bold');
+                        doc.text('المخططات البيانية', pageWidth - margin, yPos, { align: 'right' });
+                        doc.setFont('Amiri', 'normal');
+                        yPos += titleHeight;
+                        isFirstChartInSection = false;
+                    } else {
+                        // For subsequent charts, just check if the chart itself fits.
+                        checkPageBreak(imgHeight + 10);
+                    }
+
+                    doc.addImage(imgData, 'PNG', xCentered, yPos, imgWidth, imgHeight);
+                    yPos += imgHeight + 10;
+                }
+            }
+        }
+
+        // --- Section 3: Data Table ---
+        if (includeTable) {
+            checkPageBreak(10 + 40); // Check for title height + table header height
+            doc.setTextColor(primaryColor);
+            doc.setFontSize(18);
+            doc.setFont('Amiri', 'bold');
+            doc.text('جدول النتائج', pageWidth - margin, yPos, { align: 'right' });
+            doc.setFont('Amiri', 'normal');
+            yPos += 5;
+
+            // Get headers and body, then reverse them for RTL layout in the PDF
+            const head = [Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent).reverse()];
+            const body = Array.from(document.querySelectorAll('table tbody tr')).map(tr => 
+                Array.from(tr.querySelectorAll('td')).map(td => td.textContent).reverse()
+            );
+
+            // Define column styles for proper RTL alignment after reversing
+            const columnStyles = {};
+            const studentNameIndex = head[0].indexOf('اسم الطالب');
+            if (studentNameIndex > -1) {
+                columnStyles[studentNameIndex] = { halign: 'right' };
+            }
+            const categoryColumnIndex = head[0].indexOf('التقدير');
+
+            doc.autoTable({
+                startY: yPos,
+                head: head,
+                body: body,
+                theme: 'grid',
+                styles: {
+                    font: 'Amiri',
+                    halign: 'center', // Default alignment for all cells (good for numbers)
+                    cellPadding: 2,
+                    fontSize: 9,
+                },
+                headStyles: {
+                    fillColor: primaryColor,
+                    textColor: '#ffffff',
+                    font: 'Amiri',
+                    fontStyle: 'bold',
+                    halign: 'center' // Center headers
+                },
+                columnStyles: columnStyles, // Apply specific right-alignment for text columns like student name
+                didDrawPage: (data) => { yPos = data.cursor.y; },
+                didParseCell: (data) => {
+                    if (data.section === 'body' && data.column.index === categoryColumnIndex) {
+                        const category = data.cell.raw;
+                        let bg, text;
+                        switch (category) {
+                            case 'ممتاز':
+                                bg = '#dcfce7'; text = '#166534'; break; // green-100, green-800
+                            case 'جيد جداً':
+                                bg = '#dbeafe'; text = '#312e81'; break; // blue-100, indigo-900
+                            case 'جيد':
+                                bg = '#fef3c7'; text = '#854d0e'; break; // amber-100, amber-800
+                            case 'مقبول':
+                                bg = '#f3e8ff'; text = '#581c87'; break; // purple-100, purple-900
+                            case 'ضعيف':
+                                bg = '#fee2e2'; text = '#991b1b'; break; // red-100, red-800
+                            case 'الغياب':
+                                bg = '#e2e8f0'; text = '#1e293b'; break; // slate-200, slate-800
+                            default:
+                                bg = '#ffffff'; text = '#334155'; break; // white, slate-700
+                        }
+                        data.cell.styles.fillColor = bg;
+                        data.cell.styles.textColor = text;
+                    }
+                }
+            });
+        }
+
+        // --- Footer ---
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let j = 1; j <= pageCount; j++) {
+            doc.setPage(j);
+            doc.setTextColor(textColor);
+            doc.setFontSize(10);
+            
+            // Add a line above the footer
+            doc.setDrawColor(primaryColor);
+            doc.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
+
+            // --- Right-aligned footer text ---
+            const preparedByText = `إعداد: ${teacherName}`;
+            doc.text(preparedByText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+            
+            // Left-aligned page number
+            doc.text(`صفحة ${j} من ${pageCount}`, margin, pageHeight - 10, { align: 'left' });
+        }
+
+        doc.save(`تقرير_تحليل_البيانات_${schoolName}.pdf`);
+
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        alert("حدث خطأ أثناء إنشاء التقرير. يرجى المحاولة مرة أخرى.");
+
+    } finally {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        if (loadingMessage) {
+            loadingMessage.textContent = 'يرجى الانتظار... جاري تحليل البيانات'; // Reset message
+        }
+    }
+}
+
 const displayStatusMessage = (element, message, type, duration = 4000) => {
     element.textContent = message;
     element.style.display = 'block';
@@ -1052,6 +1528,7 @@ function updateFilterOptions() {
 
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+
     // Do not run updateDashboard on load, wait for user action
 
     document.getElementById('helpBtn').addEventListener('click', () => {
@@ -1060,5 +1537,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('closeHelp').addEventListener('click', () => {
         document.getElementById('helpModal').classList.add('hidden');
+    });
+
+    // إضافة رسالة تأكيد قبل الخروج بعد إجراء التحليل
+    window.addEventListener('beforeunload', (event) => {
+        if (analysisHasRun) {
+            const confirmationMessage = 'سيتم إلغاء جميع بياناتك. هل أنت متأكد من الخروج؟';
+            event.preventDefault(); // مطلوب لمعظم المتصفحات
+            event.returnValue = confirmationMessage; // لـ Chrome
+            return confirmationMessage; // لـ Firefox ومتصفحات أخرى
+        }
     });
 });

@@ -10,12 +10,28 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <!-- SheetJS (js-xlsx) for Excel export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Amiri font for PDF Arabic support -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
+
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-[101]">
+        <div class="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center gap-6 w-96">
+            <div class="flex space-x-2 justify-center items-center">
+                <div class="h-4 w-4 bg-teal-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div class="h-4 w-4 bg-teal-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div class="h-4 w-4 bg-teal-500 rounded-full animate-bounce"></div>
+            </div>
+            <span id="loadingMessage" class="text-xl font-semibold text-slate-700">يرجى الانتظار... جاري تحليل البيانات</span>
+        </div>
+    </div>
 
     <button id="helpBtn" class="absolute top-4 left-4 text-blue-600 hover:text-blue-800 flex items-center space-x-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -51,8 +67,12 @@
                     <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" disabled>
                     <p id="maxScoreError" class="text-red-500 text-xs mt-1 h-4"></p>
                 </div>
-                <div class="mt-5">
+                <div class="mt-5 flex items-center gap-2">
                     <button id="analyzeBtn" class="bg-teal-500 text-white py-2 px-6 rounded-lg hover:bg-teal-600 transition-colors shadow disabled:bg-slate-300 disabled:cursor-not-allowed">3. تحليل النتائج</button>
+                    <button id="resetAppBtn" class="bg-rose-500 text-white py-2 px-4 rounded-lg hover:bg-rose-600 transition-colors shadow hidden flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l1.5 1.5A9 9 0 0120.5 15M20 20l-1.5-1.5A9 9 0 003.5 9" /></svg>
+                        <span>إعادة الضبط</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -170,12 +190,18 @@
                         <label for="studentSearchInput" class="block text-sm font-medium text-slate-500 mb-1">بحث بالاسم</label>
                         <input type="text" id="studentSearchInput" placeholder="ابحث عن طالب..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
                     </div>
-                    <button id="resetFiltersBtn" class="bg-slate-100 text-red-500 py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors shadow flex items-center gap-1 text-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 8l6 6v4l-4 2v-6l-6-6m12 0l3 3m0-3l-3 3" />
-                        </svg>
-                              <span>إلغاء التصفية</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="exportReportBtn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow flex items-center gap-1 text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                            <span>تصدير التقرير PDF</span>
+                        </button>
+                        <button id="resetFiltersBtn" class="bg-slate-100 text-red-500 py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors shadow flex items-center gap-1 text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M6 8l6 6v4l-4 2v-6l-6-6m12 0l3 3m0-3l-3 3" />
+                            </svg>
+                            <span>إلغاء التصفية</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -189,6 +215,44 @@
                     <div>
                         <h3 class="text-slate-500 text-sm font-medium">إجمالي الطلاب</h3>
                         <p id="totalStudents" class="text-3xl font-bold text-slate-700">0</p>
+                    </div>
+                </div>
+                <!-- New Card: Success Count -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222 4 2.222V20" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">عدد النجاح</h3>
+                        <p id="successCount" class="text-3xl font-bold text-slate-700">0</p>
+                    </div>
+                </div>
+                <!-- New Card: Failure Count -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">عدد الرسوب</h3>
+                        <p id="failureCount" class="text-3xl font-bold text-slate-700">0</p>
+                    </div>
+                </div>
+                <!-- New Card: Absence Count -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                    <div class="bg-gray-100 p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-slate-500 text-sm font-medium">عدد الغياب</h3>
+                        <p id="absenceCount" class="text-3xl font-bold text-slate-700">0</p>
                     </div>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
@@ -491,6 +555,57 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
+
+
+    <!-- Report Generation Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[102]">
+        <div class="bg-white p-6 rounded-lg max-w-md w-full shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-slate-700">إعداد تقرير التحليل</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="schoolNameInput" class="block text-sm font-medium text-slate-600 mb-1">اسم المدرسة</label>
+                    <input type="text" id="schoolNameInput" placeholder="يرجى إدخال اسم المدرسة" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label for="schoolLogoInput" class="block text-sm font-medium text-slate-600 mb-1">شعار المدرسة (اختياري)</label>
+                    <input type="file" id="schoolLogoInput" accept="image/png, image/jpeg" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                </div>
+                <div>
+                    <label for="teacherNameInput" class="block text-sm font-medium text-slate-600 mb-1">اسم مُعِد التقرير</label>
+                    <input type="text" id="teacherNameInput" placeholder="يرجى إدخال اسم مُعِد التقرير" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">يرجى اختيار محاور التقرير</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="reportSectionAll" class="form-checkbox h-4 w-4 text-teal-600 rounded" checked>
+                            <span class="mr-2 text-sm text-slate-700">الكل</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="reportSectionSummary" class="form-checkbox h-4 w-4 text-teal-600 rounded report-section" checked>
+                            <span class="mr-2 text-sm text-slate-700">ملخص النتائج</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="reportSectionStats" class="form-checkbox h-4 w-4 text-teal-600 rounded report-section" checked>
+                            <span class="mr-2 text-sm text-slate-700">الإحصائيات العامة</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="reportSectionCharts" class="form-checkbox h-4 w-4 text-teal-600 rounded report-section" checked>
+                            <span class="mr-2 text-sm text-slate-700">المخططات البيانية</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="reportSectionTable" class="form-checkbox h-4 w-4 text-teal-600 rounded report-section" checked>
+                            <span class="mr-2 text-sm text-slate-700"> جدول البيانات</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="cancelReportBtn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200">إلغاء</button>
+                <button id="generateReportBtn" class="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600">إنشاء التقرير</button>
+            </div>
+        </div>
+    </div>
 
 
     <script src="main.js"></script>
