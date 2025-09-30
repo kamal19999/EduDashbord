@@ -168,7 +168,7 @@ function updateDashboard(onCompleteCallback = null) {
         sectionFilter: { label: 'القسم', values: sectionFilterValues },
         categoryFilter: { label: 'التقدير', values: categoryFilterValues },
         subjectFilter: { label: 'المادة', values: subjectFilterValues },
-        timeFilter: { label: ' الزمن', values: timeFilterValues }
+        timeFilter: { label: ' نوع التحليل', values: timeFilterValues }
     };
 
     for (const filterId in filters) {
@@ -1088,7 +1088,7 @@ function processParsedData(data, headers) {
             return;
         }
 
-        const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'سلوك', 'النسبة', ' الزمن'];
+        const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'سلوك', 'النسبة', ' نوع التحليل'];
         
         subjectLabels = {};
         subjectKeys = [];
@@ -1123,7 +1123,7 @@ function processParsedData(data, headers) {
             // Access other fields safely
             scores['behavior'] = Number(row['سلوك']) || 0; // Behavior score remains raw
             // The 'percent' and 'overall' from the file are now ignored. They will be calculated on analysis.
-            return { name: row['اسم الطالب'], grade: row['الصف'], section: row['القسم'], scores: scores, percent: 0, totalScore: totalScore, overall: 0, time: row['الزمن '] || null, category: 'N/A' };
+            return { name: row['اسم الطالب'], grade: row['الصف'], section: row['القسم'], scores: scores, percent: 0, totalScore: totalScore, overall: 0, time: row['نوع التحليل '] || null, category: 'N/A' };
         });
 
         dynamicSubjectColors = generateColors(subjectKeys.length);
