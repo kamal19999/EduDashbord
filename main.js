@@ -1,18 +1,20 @@
-let subjectAverageChart, gradeDistributionChart, gradeStudentDistributionChart, averageGradeByClassChart;
+let subjectAverageChart, gradeDistributionChart, gradeStudentDistributionChart, averageGradeByClassChart,
+    overallPerformanceComparisonChart, subjectPerformancePerMonthChart, classPerformancePerMonthChart;
 let allStudentsData = [];
 let amiriFont = null; // To hold the base64 font
 let amiriBoldFont = null; // To hold the bold font
 let analysisHasRun = false; // لتتبع ما إذا كان التحليل قد تم
+let shouldShowTimeColumn = false; // New global variable to control visibility of 'نوع التحليل' column
 
 let subjectLabels = {}; // Maps key to clean name, e.g., { 'math': 'الرياضيات' }
 let subjectKeys = [];   // e.g., ['math', 'science']
 let globalMaxScore = 100; // Will be set by the user
-//الحمد لله وسبحان الله
+//الحمد لله وسبحان الله ولا إله إلا الله والله أكبر 
 const getScoreAsPercentage = (score) => {
     if (globalMaxScore === 0) return 0;
     return (score / globalMaxScore) * 100;
 };
-
+// التعديل رقم 740
 const getGradeCategory = (percentage) => {
     if (percentage === 0) return 'الغياب';
     if (percentage >= 90) return 'ممتاز';
@@ -65,7 +67,39 @@ const generateColors = (numColors) => {
     return colors;
 };
 
-let dynamicSubjectColors = []; // To store generated colors
+let labelColorMap = {}; // Global map to store consistent colors for labels (for hex colors)
+let colorIndex = 0; // To cycle through predefined colors (for hex colors)
+const predefinedColors = [
+    '#0d9488', // teal-600
+    '#2563eb', // blue-600
+    '#fbbf24', // amber-400
+    '#a78bfa', // purple-400
+    '#ef4444', // red-500
+    '#10b981', // emerald-500
+    '#6366f1', // indigo-500
+    '#f97316', // orange-500
+    '#84cc16', // lime-500
+    '#ec4899', // pink-500
+    '#64748b', // slate-500
+    '#06b6d4', // cyan-500
+    '#f43f5e', // rose-500
+    '#eab308', // yellow-500
+    '#3b82f6', // blue-500
+    '#a855f7', // violet-500
+    '#f59e0b', // amber-500
+    '#22c55e', // green-500
+    '#d946ef', // fuchsia-500
+    '#8b5cf6'  // violet-500
+];
+
+const getConsistentColor = (label) => {
+    if (!labelColorMap[label]) {
+        labelColorMap[label] = predefinedColors[colorIndex % predefinedColors.length];
+        colorIndex++;
+    }
+    return labelColorMap[label];
+};
+
 
 // Helper function to get selected values from multi-select dropdowns
 const getSelectedFilterValues = (filterId) => {
@@ -89,17 +123,27 @@ const updateFilterDisplay = (filterId, selectedValues) => {
     }
 };
 
+let currentPercentageFilter = null; // Global variable to store the percentage for filtering
 let debounceTimer;
 function updateDashboard(onCompleteCallback = null) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-    const gradeFilterValues = getSelectedFilterValues('gradeFilter');
-    const sectionFilterValues = getSelectedFilterValues('sectionFilter');
-    const levelFilter = document.getElementById('levelFilter').value; // Single select
-    const categoryFilterValues = getSelectedFilterValues('categoryFilter');
-    const subjectFilterValues = getSelectedFilterValues('subjectFilter');
-    const timeFilterValues = getSelectedFilterValues('timeFilter');
+    const sectionFilterValues = getSelectedFilterValues('sectionFilter'); // القسم
+    const gradeFilterValues = getSelectedFilterValues('gradeFilter'); // الصف الدراسي
+    const divisionFilterValues = getSelectedFilterValues('divisionFilter'); // الشعبة - NEW
+    const subjectFilterValues = getSelectedFilterValues('subjectFilter'); // المادة الدراسية
+    const categoryFilterValues = getSelectedFilterValues('categoryFilter'); // فئة التقدير
+    const levelFilter = document.getElementById('levelFilter').value; // المستوى - Single select
+    const timeFilterValues = getSelectedFilterValues('timeFilter'); // نوع التحليل
     const searchQuery = document.getElementById('studentSearchInput').value.trim().toLowerCase();
+
+    // If 'greaterThan' or 'lessThan' is selected, but no percentage is set,
+    // or if the filter is changed away from these options, reset the percentage.
+    if ((levelFilter === 'greaterThan' || levelFilter === 'lessThan') && currentPercentageFilter === null) {
+        // Do nothing, wait for the modal to set currentPercentageFilter
+    } else if (levelFilter !== 'greaterThan' && levelFilter !== 'lessThan') {
+        currentPercentageFilter = null; // Reset if filter is not 'greaterThan' or 'lessThan'
+    }
 
     // For subject filter, if multiple subjects are selected, 'overall' should still be based on the original overall score.
     // If only one subject is selected, 'overall' can be adjusted to that subject's score.
@@ -119,8 +163,9 @@ function updateDashboard(onCompleteCallback = null) {
             studentCategoryForFiltering = getGradeCategory(studentOverallForFiltering);
         }
 
-        const matchesGrade = gradeFilterValues.includes('الكل') || gradeFilterValues.includes(student.grade ?? '');
         const matchesSection = sectionFilterValues.includes('الكل') || sectionFilterValues.includes(student.section ?? '');
+        const matchesGrade = gradeFilterValues.includes('الكل') || gradeFilterValues.includes(student.grade ?? '');
+        const matchesDivision = divisionFilterValues.includes('الكل') || divisionFilterValues.includes(student.division ?? ''); // NEW
         const matchesTime = timeFilterValues.includes('الكل') || timeFilterValues.includes(student.time ?? '');
 
         // Simplified category matching logic
@@ -151,7 +196,15 @@ function updateDashboard(onCompleteCallback = null) {
 
         const matchesSearch = !searchQuery || (student.name && student.name.toLowerCase().includes(searchQuery));
 
-        return matchesGrade && matchesSection && matchesCategory && matchesSubject && matchesTime && matchesSearch;
+        // New filtering for 'greaterThan' and 'lessThan'
+        let matchesLevel = true;
+        if (levelFilter === 'greaterThan' && currentPercentageFilter !== null) {
+            matchesLevel = studentOverallForFiltering > currentPercentageFilter;
+        } else if (levelFilter === 'lessThan' && currentPercentageFilter !== null) {
+            matchesLevel = studentOverallForFiltering < currentPercentageFilter;
+        }
+
+        return matchesSection && matchesGrade && matchesDivision && matchesCategory && matchesSubject && matchesTime && matchesSearch && matchesLevel; // Added matchesDivision and matchesLevel
     });
 
     if (levelFilter === 'top10') {
@@ -164,11 +217,12 @@ function updateDashboard(onCompleteCallback = null) {
 
     const titleParts = ['كشف الطلاب والدرجات'];
     const filters = {
-        gradeFilter: { label: 'الصف', values: gradeFilterValues },
         sectionFilter: { label: 'القسم', values: sectionFilterValues },
-        categoryFilter: { label: 'التقدير', values: categoryFilterValues },
+        gradeFilter: { label: 'الصف', values: gradeFilterValues },
+        divisionFilter: { label: 'الشعبة', values: divisionFilterValues }, // NEW
         subjectFilter: { label: 'المادة', values: subjectFilterValues },
-        timeFilter: { label: ' نوع التحليل', values: timeFilterValues }
+        categoryFilter: { label: 'التقدير', values: categoryFilterValues },
+        timeFilter: { label: 'نوع التحليل', values: timeFilterValues }
     };
 
     for (const filterId in filters) {
@@ -179,6 +233,8 @@ function updateDashboard(onCompleteCallback = null) {
     }
     if (levelFilter === 'top10') titleParts.push('أعلى عشرة');
     if (levelFilter === 'bottom10') titleParts.push('أدنى عشرة');
+    if (levelFilter === 'greaterThan' && currentPercentageFilter !== null) titleParts.push(`أعلى من ${currentPercentageFilter}%`);
+    if (levelFilter === 'lessThan' && currentPercentageFilter !== null) titleParts.push(`أدنى من ${currentPercentageFilter}%`);
     document.getElementById('studentsTableTitle').textContent = titleParts.join(' - ');
 
     updateStatsCards(filteredStudents);
@@ -186,6 +242,34 @@ function updateDashboard(onCompleteCallback = null) {
     updateGradeDistributionChart(filteredStudents);
     updateGradeStudentDistributionChart(filteredStudents); // New chart
     updateAverageGradeByClassChart(filteredStudents); // New chart
+
+    // New comparative charts
+    const comparativeChartsSection = document.getElementById('comparativeChartsSection');
+    let shouldShowComparativeCharts = false;
+
+    if (filteredStudents.length > 0) {
+        const distinctTimeValuesInFilteredData = [...new Set(filteredStudents.map(s => s.time).filter(Boolean))];
+
+        if (timeFilterValues.includes('الكل')) {
+            shouldShowComparativeCharts = distinctTimeValuesInFilteredData.length > 0; // Show if any time data exists when 'All' is selected
+        } else {
+            shouldShowComparativeCharts = timeFilterValues.length > 1;
+        }
+    }
+
+    if (shouldShowComparativeCharts) {
+        comparativeChartsSection.classList.remove('hidden');
+        updateOverallPerformanceComparisonChart(filteredStudents, timeFilterValues);
+        updateSubjectPerformancePerMonthChart(filteredStudents, timeFilterValues);
+        updateClassPerformancePerMonthChart(filteredStudents, timeFilterValues);
+    } else {
+        comparativeChartsSection.classList.add('hidden');
+        // Destroy charts if they exist to free up memory
+        if (overallPerformanceComparisonChart) { overallPerformanceComparisonChart.destroy(); overallPerformanceComparisonChart = null; }
+        if (subjectPerformancePerMonthChart) { subjectPerformancePerMonthChart.destroy(); subjectPerformancePerMonthChart = null; }
+        if (classPerformancePerMonthChart) { classPerformancePerMonthChart.destroy(); classPerformancePerMonthChart = null; }
+    }
+
     updateStudentsTable(filteredStudents);
 
     if (onCompleteCallback) {
@@ -370,7 +454,7 @@ function updateSubjectAverageChart(students) {
     const subjectAvgs = calculateSubjectAverages(students);
     const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
 
-    let filteredSubjects;
+    let filteredSubjects = [];
     if (subjectFilterValues.includes('الكل')) {
         filteredSubjects = Object.entries(subjectAvgs).filter(([key, avg]) => avg > 0 && key !== 'behavior');
     } else {
@@ -382,9 +466,12 @@ function updateSubjectAverageChart(students) {
             .filter(Boolean); // Remove nulls for subjects not found or with 0 average
     }
 
+    // Sort subjects by average score in descending order
+    filteredSubjects.sort((a, b) => b[1] - a[1]);
+
     const labels = filteredSubjects.map(([key]) => subjectLabels[key] || key);
     const data = filteredSubjects.map(([, avg]) => avg);
-    const backgroundColors = labels.map((label, i) => dynamicSubjectColors[subjectKeys.indexOf(filteredSubjects[i][0])] || '#ccc');
+    const backgroundColors = labels.map(label => getConsistentColor(label));
 
     subjectAverageChart = updateChart(subjectAverageChart, ctx, 'bar', {
         labels: labels,
@@ -668,8 +755,16 @@ function updateAverageGradeByClassChart(students) {
         gradeCounts[student.grade] = (gradeCounts[student.grade] || 0) + 1;
     });
 
-    const labels = Object.keys(gradeAverages).sort();
-    const data = labels.map(grade => (gradeAverages[grade] / gradeCounts[grade]));
+    const calculatedGradeAverages = Object.keys(gradeAverages).map(grade => ({
+        grade: grade,
+        average: (gradeAverages[grade] / gradeCounts[grade])
+    }));
+
+    // Sort grades by average score in descending order
+    calculatedGradeAverages.sort((a, b) => b.average - a.average);
+
+    const labels = calculatedGradeAverages.map(item => item.grade);
+    const data = calculatedGradeAverages.map(item => item.average);
     const total = data.reduce((a, b) => a + b, 0); // Define total here
 
     averageGradeByClassChart = updateChart(averageGradeByClassChart, ctx, 'bar', {
@@ -677,8 +772,8 @@ function updateAverageGradeByClassChart(students) {
         datasets: [{
             label: 'متوسط الدرجة',
             data: data,
-            backgroundColor: labels.map((_, i) => dynamicSubjectColors[i % dynamicSubjectColors.length]),
-            borderColor: labels.map((_, i) => dynamicSubjectColors[i % dynamicSubjectColors.length]),
+            backgroundColor: labels.map(label => getConsistentColor(label)),
+            borderColor: labels.map(label => getConsistentColor(label)),
             borderWidth: 1
         }]
     }, {
@@ -717,6 +812,325 @@ function updateAverageGradeByClassChart(students) {
     }
 }
 
+function updateOverallPerformanceComparisonChart(students, timeFilterValues) {
+    const ctx = document.getElementById('overallPerformanceComparisonChart').getContext('2d');
+
+    const performanceByTime = {};
+    let actualTimeLabelsToProcess = [];
+
+    if (timeFilterValues.includes('الكل')) {
+        // Get all distinct time values from the filtered students
+        actualTimeLabelsToProcess = [...new Set(students.map(s => s.time).filter(Boolean))];
+    } else {
+        actualTimeLabelsToProcess = timeFilterValues;
+    }
+
+    actualTimeLabelsToProcess.forEach(time => {
+        const studentsInTime = students.filter(s => s.time === time);
+        if (studentsInTime.length > 0) {
+            const avgOverall = studentsInTime.reduce((acc, s) => acc + s.overall, 0) / studentsInTime.length;
+            performanceByTime[time] = avgOverall;
+        }
+    });
+
+    // Do not sort time labels, keep them in their original order
+    const data = actualTimeLabelsToProcess.map(time => performanceByTime[time] || 0); // Use 0 if no data for a time period
+
+    // Calculate ranks
+    const rankedData = data.map((value, index) => ({ value, originalIndex: index }));
+    rankedData.sort((a, b) => b.value - a.value); // Sort descending for ranking
+
+    const ranks = new Array(data.length);
+    let currentRank = 1;
+    for (let i = 0; i < rankedData.length; i++) {
+        if (i > 0 && rankedData[i].value < rankedData[i - 1].value) {
+            currentRank = i + 1;
+        }
+        ranks[rankedData[i].originalIndex] = currentRank;
+    }
+
+    // Calculate trend line data (simple linear regression) - Keep existing trend line logic
+    const n = data.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += data[i];
+        sumXY += (i * data[i]);
+        sumX2 += (i * i);
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const trendData = data.map((_, i) => intercept + slope * i);
+
+    overallPerformanceComparisonChart = updateChart(overallPerformanceComparisonChart, ctx, 'bar', {
+        labels: actualTimeLabelsToProcess,
+        datasets: [
+            {
+                label: 'متوسط الأداء', // This label will be overridden by generateLabels
+                data: data,
+                backgroundColor: actualTimeLabelsToProcess.map((label, index) => generateColors(actualTimeLabelsToProcess.length)[index]),
+                borderColor: actualTimeLabelsToProcess.map((label, index) => generateColors(actualTimeLabelsToProcess.length)[index]),
+                borderWidth: 1,
+                barPercentage: 0.8,
+                categoryPercentage: 0.8,
+            }
+        ]
+    }, {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: '#e2e8f0' }, ticks: { font: { family: "'Cairo', sans-serif" } } },
+            x: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Cairo', sans-serif" }, color: '#0f766e' } }
+        },
+        plugins: {
+            legend: {
+                display: true, // Show legend
+                position: 'top', // Position legend at the top
+                labels: {
+                    font: { family: "'Cairo', sans-serif" }, // Apply Arabic font
+                    generateLabels: (chart) => {
+                        const labels = chart.data.labels; // These are the time periods
+                        const backgroundColors = chart.data.datasets[0].backgroundColor;
+                        return labels.map((label, i) => ({
+                            text: label, // Display the time period as the legend text
+                            fillStyle: backgroundColors[i],
+                            strokeStyle: backgroundColors[i],
+                            lineWidth: 1,
+                            hidden: false, // Always show
+                            index: i
+                        }));
+                    }
+                }
+            },
+            tooltip: { bodyFont: { family: "'Cairo', sans-serif" }, titleFont: { family: "'Cairo', sans-serif" }, callbacks: { label: (context) => `${context.dataset.label}: ${formatPercentage(context.parsed.y)}` } },
+            datalabels: {
+                labels: {
+                    rank: {
+                        display: true,
+                        anchor: 'center', // Position in the center of the bar
+                        align: 'center',
+                        color: '#fff', // White color for better contrast on bars
+                        font: { family: "'Cairo', sans-serif", weight: 'bold', size: 24 }, // Larger font size for prominence
+                        formatter: (value, context) => ranks[context.dataIndex]
+                    },
+                    percentage: {
+                        display: true,
+                        anchor: 'end', // Position at the top of the bar
+                        align: 'top',
+                        offset: 4, // Small offset from the top of the bar
+                        color: '#000', // Black color for visibility
+                        font: { family: "'Cairo', sans-serif", weight: 'bold', size: 13 },
+                        formatter: (value) => formatPercentage(value)
+                    }
+                }
+            }
+        }
+    }, [window.ChartDataLabels]);
+
+    if (data.length === 0) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = "16px 'Cairo', sans-serif";
+        ctx.fillStyle = '#ef4444';
+        ctx.textAlign = 'center';
+        ctx.fillText('لا توجد بيانات لعرض مقارنة الأداء العام', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+}
+
+function updateSubjectPerformancePerMonthChart(students, timeFilterValues) {
+    const ctx = document.getElementById('subjectPerformancePerMonthChart').getContext('2d');
+
+    const dataBySubjectAndTime = {};
+    let actualTimeLabelsToProcess = [];
+    const subjectFilterValues = getSelectedFilterValues('subjectFilter');
+    const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
+
+    if (timeFilterValues.includes('الكل')) {
+        actualTimeLabelsToProcess = [...new Set(students.map(s => s.time).filter(Boolean))];
+    } else {
+        actualTimeLabelsToProcess = timeFilterValues;
+    }
+
+    let subjectsToDisplay = [];
+    if (subjectFilterValues.includes('الكل')) {
+        subjectsToDisplay = subjectKeys.filter(key => key !== 'behavior');
+    } else {
+        subjectsToDisplay = subjectFilterValues.map(label => subjectKeyMap[label]).filter(Boolean);
+    }
+
+    // Populate dataBySubjectAndTime only for subjects to display
+    actualTimeLabelsToProcess.forEach(time => {
+        const studentsInTime = students.filter(s => s.time === time);
+        const subjectAvgs = calculateSubjectAverages(studentsInTime);
+        subjectsToDisplay.forEach(subjectKey => {
+            if (subjectKey !== 'behavior') {
+                if (!dataBySubjectAndTime[subjectKey]) {
+                    dataBySubjectAndTime[subjectKey] = {};
+                }
+                dataBySubjectAndTime[subjectKey][time] = subjectAvgs[subjectKey] || 0; // Ensure 0 if no data
+            }
+        });
+    });
+
+    // Calculate average performance for each subject across all selected time periods
+    const subjectOverallAverages = {};
+    subjectsToDisplay.forEach(subjectKey => {
+        let totalPerformance = 0;
+        let count = 0;
+        actualTimeLabelsToProcess.forEach(time => {
+            if (dataBySubjectAndTime[subjectKey] && dataBySubjectAndTime[subjectKey][time] !== undefined) {
+                totalPerformance += dataBySubjectAndTime[subjectKey][time];
+                count++;
+            }
+        });
+        subjectOverallAverages[subjectKey] = count > 0 ? totalPerformance / count : 0;
+    });
+
+    // Sort subjects by their overall average performance in descending order
+    const sortedSubjects = subjectsToDisplay.sort((a, b) => subjectOverallAverages[b] - subjectOverallAverages[a]);
+    const sortedTimeLabels = actualTimeLabelsToProcess.sort(); // Use sorted time labels for consistent color mapping
+
+    const datasets = sortedTimeLabels.map((time, index) => {
+        const color = generateColors(sortedTimeLabels.length)[index]; // Unique color for each time period
+        return {
+            label: time,
+            data: sortedSubjects.map(subjectKey => dataBySubjectAndTime[subjectKey]?.[time] || 0),
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1,
+            barPercentage: 0.8,
+            categoryPercentage: 0.8,
+        };
+    });
+
+    subjectPerformancePerMonthChart = updateChart(subjectPerformancePerMonthChart, ctx, 'bar', {
+        labels: sortedSubjects.map(key => subjectLabels[key] || key), // Subjects on X-axis
+        datasets: datasets
+    }, {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: '#e2e8f0' }, ticks: { font: { family: "'Cairo', sans-serif" } } },
+            x: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Cairo', sans-serif" }, color: '#0f766e' } }
+        },
+        plugins: {
+            legend: { position: 'top', labels: { font: { family: "'Cairo', sans-serif" } } },
+            tooltip: { bodyFont: { family: "'Cairo', sans-serif" }, titleFont: { family: "'Cairo', sans-serif" }, callbacks: { label: (context) => `${context.dataset.label}: ${formatPercentage(context.parsed.y)}` } },
+            datalabels: {
+                display: true, // Enable datalabels
+                anchor: 'end',
+                align: 'center', // Align to the center of the anchor point (top of the bar)
+                color: '#000',
+                font: { family: "'Cairo', sans-serif", weight: 'bold', size: 11 },
+                formatter: (value) => formatPercentage(value)
+            }
+        }
+    }, [window.ChartDataLabels]);
+
+    if (sortedSubjects.length === 0 || sortedTimeLabels.length === 0) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = "16px 'Cairo', sans-serif";
+        ctx.fillStyle = '#ef4444';
+        ctx.textAlign = 'center';
+        ctx.fillText('لا توجد بيانات لعرض أداء المواد لكل فترة', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+}
+
+function updateClassPerformancePerMonthChart(students, timeFilterValues) {
+    const ctx = document.getElementById('classPerformancePerMonthChart').getContext('2d');
+
+    const dataByTimeAndClass = {};
+    const allClasses = new Set();
+    let actualTimeLabelsToProcess = [];
+
+    if (timeFilterValues.includes('الكل')) {
+        actualTimeLabelsToProcess = [...new Set(students.map(s => s.time).filter(Boolean))];
+    } else {
+        actualTimeLabelsToProcess = timeFilterValues;
+    }
+
+    actualTimeLabelsToProcess.forEach(time => {
+        dataByTimeAndClass[time] = {};
+        const studentsInTime = students.filter(s => s.time === time);
+        const classAverages = {};
+        const classCounts = {};
+
+        studentsInTime.forEach(student => {
+            classAverages[student.grade] = (classAverages[student.grade] || 0) + student.overall;
+            classCounts[student.grade] = (classCounts[student.grade] || 0) + 1;
+            allClasses.add(student.grade);
+        });
+
+        for (const grade in classAverages) {
+            dataByTimeAndClass[time][grade] = classAverages[grade] / classCounts[grade];
+        }
+    });
+
+    // Calculate average performance for each class across all selected time periods
+    const classOverallAverages = {};
+    Array.from(allClasses).forEach(grade => {
+        let totalPerformance = 0;
+        let count = 0;
+        actualTimeLabelsToProcess.forEach(time => {
+            if (dataByTimeAndClass[time] && dataByTimeAndClass[time][grade] !== undefined) {
+                totalPerformance += dataByTimeAndClass[time][grade];
+                count++;
+            }
+        });
+        classOverallAverages[grade] = count > 0 ? totalPerformance / count : 0;
+    });
+
+    // Sort classes by their overall average performance in descending order
+    const sortedClasses = Array.from(allClasses).sort((a, b) => classOverallAverages[b] - classOverallAverages[a]);
+    const sortedTimeLabels = actualTimeLabelsToProcess.sort();
+
+    const datasets = sortedTimeLabels.map((time, index) => {
+        const color = generateColors(sortedTimeLabels.length)[index]; // Generate unique colors for time periods
+        return {
+            label: time,
+            data: sortedClasses.map(grade => dataByTimeAndClass[time][grade] || 0),
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1,
+            barPercentage: 0.8,
+            categoryPercentage: 0.8,
+        };
+    });
+
+    classPerformancePerMonthChart = updateChart(classPerformancePerMonthChart, ctx, 'bar', {
+        labels: sortedClasses,
+        datasets: datasets
+    }, {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: '#e2e8f0' }, ticks: { font: { family: "'Cairo', sans-serif" } } },
+            x: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Cairo', sans-serif" }, color: '#0f766e' } }
+        },
+        plugins: {
+            legend: { position: 'top', labels: { font: { family: "'Cairo', sans-serif" } } },
+            tooltip: { bodyFont: { family: "'Cairo', sans-serif" }, titleFont: { family: "'Cairo', sans-serif" }, callbacks: { label: (context) => `${context.dataset.label}: ${formatPercentage(context.parsed.y)}` } },
+            datalabels: {
+                display: true, // Enable datalabels
+                anchor: 'end', // Position at the end of the bar
+                align: 'top', // Align to the top of the bar
+                color: '#000', // Black color for visibility
+                font: { family: "'Cairo', sans-serif", weight: 'bold', size: 11 },
+                formatter: (value) => formatPercentage(value) // Format as percentage
+            }
+        }
+    }, [window.ChartDataLabels]);
+
+    if (sortedTimeLabels.length === 0 || sortedClasses.length === 0) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = "16px 'Cairo', sans-serif";
+        ctx.fillStyle = '#ef4444';
+        ctx.textAlign = 'center';
+        ctx.fillText('لا توجد بيانات لعرض أداء الصفوف لكل فترة', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+}
+
 function updateStudentsTable(students) {
     const tableBody = document.getElementById('studentsTableBody');
     const subjectFilterValues = getSelectedFilterValues('subjectFilter');
@@ -736,13 +1150,16 @@ function updateStudentsTable(students) {
         columnsToShow = selectedSubjectKeys;
     }
 
-    // The time column is no longer displayed in the table, but its filter remains functional.
     const hidePercentageColumn = subjectFilterValues.length > 0 && !subjectFilterValues.includes('الكل');
     
-    updateTableHeader(columnsToShow, hidePercentageColumn);
+    updateTableHeader(columnsToShow, hidePercentageColumn, shouldShowTimeColumn);
 
     if (students.length === 0) {
-        const columnCount = document.querySelector('table thead th')?.parentElement.childElementCount || 10;
+        // Adjust column count based on whether 'نوع التحليل' is shown
+        let columnCount = 4 + columnsToShow.length + 2; // Base + subjects + total + grade
+        if (!hidePercentageColumn) columnCount++; // Add percentage if shown
+        if (shouldShowTimeColumn) columnCount++; // Add time if shown
+
         tableBody.innerHTML = `<tr><td colspan="${columnCount}" class="text-center py-4">لا توجد بيانات تطابق خيارات التصفية.</td></tr>`;
         return;
     }
@@ -786,6 +1203,12 @@ function updateStudentsTable(students) {
             percentageCell.textContent = formatPercentage(student.percent);
             row.appendChild(percentageCell);
         }
+        
+        // Conditionally add the 'نوع التحليل' column
+        if (shouldShowTimeColumn) {
+            row.appendChild(createCell(student.time || '-', 'px-2 py-2'));
+        }
+        
         row.appendChild(createCell(student.category, `px-2 py-2 font-bold ${getCategoryColorClass(student.category)}`));
 
         fragment.appendChild(row);
@@ -793,16 +1216,19 @@ function updateStudentsTable(students) {
     tableBody.appendChild(fragment);
 }
 
-function updateTableHeader(columnsToShow, hidePercentageColumn) {
+function updateTableHeader(columnsToShow, hidePercentageColumn, showTimeColumn) {
     const thead = document.querySelector('table thead');
     if (!thead) return;
 
     const baseHeaders = ['الترتيب', 'اسم الطالب', 'الصف', 'القسم'];
     const dynamicSubjectHeaders = columnsToShow.map(key => subjectLabels[key]);
-    // Add 'المجموع' and then conditionally add 'النسبة'
-    const endHeaders = ['المجموع', 'التقدير'];
+    
+    let endHeaders = ['المجموع', 'التقدير'];
     if (!hidePercentageColumn) {
         endHeaders.splice(1, 0, 'النسبة'); // Insert 'النسبة' after 'المجموع'
+    }
+    if (showTimeColumn) {
+        endHeaders.splice(endHeaders.length - 1, 0, 'نوع التحليل'); // Insert 'نوع التحليل' before 'التقدير'
     }
     
     let allHeaders = [...baseHeaders, ...dynamicSubjectHeaders, ...endHeaders];
@@ -818,6 +1244,49 @@ function exportTableAsExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "نتائج التحليل");
     XLSX.writeFile(wb, "نتائج_التحليل.xlsx");
+}
+
+// Function to export chart data to Excel
+function exportChartDataAsExcel(chartInstance, filename) {
+    if (!chartInstance) {
+        alert('لا توجد بيانات للمخطط لتصديرها.');
+        return;
+    }
+
+    const data = chartInstance.data;
+    const sheetData = [];
+
+    // Determine the main label for the first column (e.g., 'الفترة', 'المادة', 'التقدير', 'الصف')
+    let mainLabel = 'الفئة'; // Default label
+    if (chartInstance.canvas.id === 'subjectAverageChart') mainLabel = 'المادة';
+    else if (chartInstance.canvas.id === 'gradeDistributionChart') mainLabel = 'التقدير';
+    else if (chartInstance.canvas.id === 'gradeStudentDistributionChart') mainLabel = 'الصف';
+    else if (chartInstance.canvas.id === 'averageGradeByClassChart') mainLabel = 'الصف';
+    else if (chartInstance.canvas.id === 'overallPerformanceComparisonChart') mainLabel = 'الفترة';
+    else if (chartInstance.canvas.id === 'subjectPerformancePerMonthChart') mainLabel = 'المادة';
+    else if (chartInstance.canvas.id === 'classPerformancePerMonthChart') mainLabel = 'الصف';
+
+
+    // Create header row: [Main Label, Dataset1 Label, Dataset2 Label, ...]
+    const headerRow = [mainLabel];
+    data.datasets.forEach(dataset => {
+        headerRow.push(dataset.label);
+    });
+    sheetData.push(headerRow);
+
+    // Populate data rows
+    data.labels.forEach((label, labelIndex) => {
+        const row = [label];
+        data.datasets.forEach(dataset => {
+            row.push(dataset.data[labelIndex]);
+        });
+        sheetData.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "بيانات المخطط");
+    XLSX.writeFile(wb, filename);
 }
 
 // Helper function to initialize and manage multi-select dropdowns
@@ -885,10 +1354,48 @@ const initializeMultiSelectDropdown = (id, staticOptions = null) => {
     return { populateOptions, reset, dropdown }; // Return populateOptions, reset, and dropdown element
 };
 
-let gradeFilterDropdown, sectionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown;
+let gradeFilterDropdown, sectionFilterDropdown, divisionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown;
 
 function setupEventListeners() {
-    document.getElementById('levelFilter').addEventListener('change', updateDashboard);
+    const levelFilterSelect = document.getElementById('levelFilter');
+    const percentageModal = document.getElementById('percentageModal');
+    const percentageModalTitle = document.getElementById('percentageModalTitle');
+    const percentageInput = document.getElementById('percentageInput');
+    const percentageError = document.getElementById('percentageError');
+    const applyPercentageBtn = document.getElementById('applyPercentageBtn');
+    const cancelPercentageBtn = document.getElementById('cancelPercentageBtn');
+
+    levelFilterSelect.addEventListener('change', (event) => {
+        const selectedValue = event.target.value;
+        if (selectedValue === 'greaterThan' || selectedValue === 'lessThan') {
+            percentageModalTitle.textContent = selectedValue === 'greaterThan' ? 'تصفية أعلى من' : 'تصفية أدنى من';
+            percentageInput.value = ''; // Clear previous input
+            percentageError.textContent = ''; // Clear previous error
+            percentageModal.classList.remove('hidden');
+        } else {
+            currentPercentageFilter = null; // Reset filter if not 'greaterThan' or 'lessThan'
+            updateDashboard();
+        }
+    });
+
+    applyPercentageBtn.addEventListener('click', () => {
+        const value = parseInt(percentageInput.value, 10);
+        if (value >= 1 && value <= 100) {
+            currentPercentageFilter = value;
+            percentageModal.classList.add('hidden');
+            updateDashboard();
+        } else {
+            percentageError.textContent = 'الرجاء إدخال نسبة بين 1 و 100.';
+        }
+    });
+
+    cancelPercentageBtn.addEventListener('click', () => {
+        currentPercentageFilter = null;
+        levelFilterSelect.value = 'الكل'; // Reset the dropdown selection
+        percentageModal.classList.add('hidden');
+        updateDashboard();
+    });
+
     document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
     document.getElementById('resetAppBtn').addEventListener('click', () => {
         // إظهار رسالة تأكيد قبل إعادة تحميل الصفحة
@@ -900,6 +1407,7 @@ function setupEventListeners() {
 
     gradeFilterDropdown = initializeMultiSelectDropdown('gradeFilter');
     sectionFilterDropdown = initializeMultiSelectDropdown('sectionFilter');
+    divisionFilterDropdown = initializeMultiSelectDropdown('divisionFilter'); // NEW
     categoryFilterDropdown = initializeMultiSelectDropdown('categoryFilter');
     subjectFilterDropdown = initializeMultiSelectDropdown('subjectFilter');
     timeFilterDropdown = initializeMultiSelectDropdown('timeFilter');
@@ -920,7 +1428,7 @@ function setupEventListeners() {
     });
 
     document.addEventListener('click', (event) => {
-        ['gradeFilter', 'sectionFilter', 'categoryFilter', 'subjectFilter', 'timeFilter'].forEach(id => {
+        ['gradeFilter', 'sectionFilter', 'divisionFilter', 'categoryFilter', 'subjectFilter', 'timeFilter'].forEach(id => { // Added divisionFilter
             const dropdown = document.getElementById(`${id}Dropdown`);
             const toggleButton = document.getElementById(`${id}Toggle`);
             if (dropdown && toggleButton && !dropdown.contains(event.target) && !toggleButton.contains(event.target)) {
@@ -931,9 +1439,19 @@ function setupEventListeners() {
 
     document.getElementById('downloadExcelBtn').addEventListener('click', exportTableAsExcel);
     document.getElementById('exportSubjectChartBtn').addEventListener('click', () => exportChart('subjectAverageChart', 'subject_average_chart.png'));
+    document.getElementById('exportSubjectChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(subjectAverageChart, 'subject_average_chart_data.xlsx'));
     document.getElementById('exportGradeChartBtn').addEventListener('click', () => exportChart('gradeDistributionChart', 'grade_distribution_chart.png'));
-    document.getElementById('exportGradeStudentDistributionChartBtn').addEventListener('click', () => exportChart('gradeStudentDistributionChart', 'grade_student_distribution_chart.png')); // New export button
-    document.getElementById('exportAverageGradeByClassChartBtn').addEventListener('click', () => exportChart('averageGradeByClassChart', 'average_grade_by_class_chart.png')); // New export button
+    document.getElementById('exportGradeChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(gradeDistributionChart, 'grade_distribution_chart_data.xlsx'));
+    document.getElementById('exportGradeStudentDistributionChartBtn').addEventListener('click', () => exportChart('gradeStudentDistributionChart', 'grade_student_distribution_chart.png'));
+    document.getElementById('exportGradeStudentDistributionChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(gradeStudentDistributionChart, 'grade_student_distribution_chart_data.xlsx'));
+    document.getElementById('exportAverageGradeByClassChartBtn').addEventListener('click', () => exportChart('averageGradeByClassChart', 'average_grade_by_class_chart.png'));
+    document.getElementById('exportAverageGradeByClassChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(averageGradeByClassChart, 'average_grade_by_class_chart_data.xlsx'));
+    document.getElementById('exportOverallPerformanceComparisonChartBtn').addEventListener('click', () => exportChart('overallPerformanceComparisonChart', 'overall_performance_comparison_chart.png'));
+    document.getElementById('exportOverallPerformanceComparisonChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(overallPerformanceComparisonChart, 'overall_performance_comparison_chart_data.xlsx'));
+    document.getElementById('exportSubjectPerformancePerMonthChartBtn').addEventListener('click', () => exportChart('subjectPerformancePerMonthChart', 'subject_performance_per_month_chart.png'));
+    document.getElementById('exportSubjectPerformancePerMonthChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(subjectPerformancePerMonthChart, 'subject_performance_per_month_chart_data.xlsx'));
+    document.getElementById('exportClassPerformancePerMonthChartBtn').addEventListener('click', () => exportChart('classPerformancePerMonthChart', 'class_performance_per_month_chart.png'));
+    document.getElementById('exportClassPerformancePerMonthChartDataBtn').addEventListener('click', () => exportChartDataAsExcel(classPerformancePerMonthChart, 'class_performance_per_month_chart_data.xlsx'));
 
     const csvUpload = document.getElementById('csvUpload');
     const csvTooltip = document.getElementById('csvTooltip');
@@ -963,7 +1481,7 @@ function resetFilters() {
     document.getElementById('levelFilter').value = 'الكل';
     document.getElementById('studentSearchInput').value = '';
 
-    const multiSelectFilterInstances = [gradeFilterDropdown, sectionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown];
+    const multiSelectFilterInstances = [gradeFilterDropdown, sectionFilterDropdown, divisionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown];
     multiSelectFilterInstances.forEach(instance => {
         instance.reset();
     });
@@ -1088,7 +1606,7 @@ function processParsedData(data, headers) {
             return;
         }
 
-        const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'سلوك', 'النسبة', ' نوع التحليل'];
+        const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'الشعبة', 'سلوك', 'النسبة', 'نوع التحليل']; // Added 'الشعبة'
         
         subjectLabels = {};
         subjectKeys = [];
@@ -1123,8 +1641,11 @@ function processParsedData(data, headers) {
             // Access other fields safely
             scores['behavior'] = Number(row['سلوك']) || 0; // Behavior score remains raw
             // The 'percent' and 'overall' from the file are now ignored. They will be calculated on analysis.
-            return { name: row['اسم الطالب'], grade: row['الصف'], section: row['القسم'], scores: scores, percent: 0, totalScore: totalScore, overall: 0, time: row['نوع التحليل '] || null, category: 'N/A' };
+            return { name: row['اسم الطالب'], grade: row['الصف'], section: row['القسم'], division: row['الشعبة'] || null, scores: scores, percent: 0, totalScore: totalScore, overall: 0, time: row['نوع التحليل'] || null, category: 'N/A' }; // Added division
         });
+
+        // Determine if 'نوع التحليل' column should be shown
+        shouldShowTimeColumn = allStudentsData.some(student => student.time !== null && student.time !== undefined && student.time !== '');
 
         dynamicSubjectColors = generateColors(subjectKeys.length);
         
@@ -1371,9 +1892,19 @@ async function generatePdfReport() {
         // --- Section 2: Charts ---
         if (includeCharts) {
             const chartIds = ['subjectAverageChart', 'gradeDistributionChart', 'gradeStudentDistributionChart', 'averageGradeByClassChart'];
+            const comparativeChartIds = ['overallPerformanceComparisonChart', 'subjectPerformancePerMonthChart', 'classPerformancePerMonthChart'];
+            let allChartIds = [...chartIds];
+
+            // Check if the comparative charts section is currently visible on the dashboard
+            const shouldIncludeComparativeCharts = document.getElementById('comparativeChartsSection') && !document.getElementById('comparativeChartsSection').classList.contains('hidden');
+
+            if (shouldIncludeComparativeCharts) {
+                allChartIds = [...chartIds, ...comparativeChartIds];
+            }
+
             let isFirstChartInSection = true;
 
-            for (const chartId of chartIds) {
+            for (const chartId of allChartIds) {
                 const chartContainer = document.getElementById(chartId)?.closest('.bg-white');
                 if (chartContainer) {
                     const canvas = await html2canvas(chartContainer, { scale: 2, backgroundColor: '#ffffff' });
@@ -1489,9 +2020,13 @@ async function generatePdfReport() {
             doc.setDrawColor(primaryColor);
             doc.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
 
-            // --- Right-aligned footer text ---
+            // --- Right-aligned prepared by text ---
             const preparedByText = `إعداد: ${teacherName}`;
             doc.text(preparedByText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+            // --- Centered footer text from index.html ---
+            const customFooterText = 'جميع الحقوق محفوظة © م.كمال الخطابي للتواصل:00967781414133';
+            doc.text(customFooterText, pageWidth / 2, pageHeight - 10, { align: 'center' });
             
             // Left-aligned page number
             doc.text(`صفحة ${j} من ${pageCount}`, margin, pageHeight - 10, { align: 'left' });
@@ -1519,11 +2054,12 @@ const displayStatusMessage = (element, message, type, duration = 4000) => {
 };
 
 function updateFilterOptions() {
-    gradeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.grade).filter(Boolean))].sort());
     sectionFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.section).filter(Boolean))].sort());
-    timeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.time).filter(Boolean))].sort());
+    gradeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.grade).filter(Boolean))].sort());
+    divisionFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.division).filter(Boolean))].sort()); // NEW
     subjectFilterDropdown.populateOptions(Object.values(subjectLabels).filter(label => label !== 'الغياب').sort());
-    // categoryFilter is static, no need to populate dynamically
+    categoryFilterDropdown.populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'الغياب']); // categoryFilter is static, re-populate to ensure order
+    timeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.time).filter(Boolean))].sort());
 }
 
 document.addEventListener('DOMContentLoaded', () => {

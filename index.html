@@ -83,6 +83,23 @@
                     <h2 class="text-lg text-center font-semibold text-slate-600">خيارات التصفية</h2>
                 </div>
                 <div class="md:col-span-2 flex flex-wrap items-end gap-4">
+                    <!-- القسم/الفرع (sectionFilter) -->
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="sectionFilter" class="block text-sm font-medium text-slate-500 mb-1">القسم/الفرع</label>
+                        <button id="sectionFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="sectionFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="sectionFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- الصف الدراسي (gradeFilter) -->
                     <div class="flex-1 min-w-[150px] relative">
                         <label for="gradeFilter" class="block text-sm font-medium text-slate-500 mb-1">الصف الدراسي</label>
                         <button id="gradeFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
@@ -98,13 +115,14 @@
                             </div>
                         </div>
                     </div>
+                    <!-- الشعبة (divisionFilter) - NEW -->
                     <div class="flex-1 min-w-[150px] relative">
-                        <label for="sectionFilter" class="block text-sm font-medium text-slate-500 mb-1">القسم</label>
-                        <button id="sectionFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
-                            <span id="sectionFilterDisplay">الكل</span>
+                        <label for="divisionFilter" class="block text-sm font-medium text-slate-500 mb-1">الشعبة</label>
+                        <button id="divisionFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="divisionFilterDisplay">الكل</span>
                             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div id="sectionFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                        <div id="divisionFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
                             <div class="p-2">
                                 <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
                                     <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
@@ -113,14 +131,23 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="levelFilter" class="block text-sm font-medium text-slate-500 mb-1">المستوى</label>
-                        <select id="levelFilter" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
-                            <option value="الكل">الكل</option>
-                            <option value="top10">أعلى عشرة</option>
-                            <option value="bottom10">أدنى عشرة</option>
-                        </select>
+                    <!-- المادة الدراسية (subjectFilter) -->
+                    <div class="flex-1 min-w-[150px] relative">
+                        <label for="subjectFilter" class="block text-sm font-medium text-slate-500 mb-1">المادة الدراسية</label>
+                        <button id="subjectFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
+                            <span id="subjectFilterDisplay">الكل</span>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="subjectFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                            <div class="p-2">
+                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
+                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
+                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
+                    <!-- فئة التقدير (categoryFilter) -->
                     <div class="flex-1 min-w-[150px] relative">
                         <label for="categoryFilter" class="block text-sm font-medium text-slate-500 mb-1">فئة التقدير</label>
                         <button id="categoryFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
@@ -156,23 +183,9 @@
                             </div>
                         </div>
                     </div>
+                    <!-- نوع التحليل (timeFilter) -->
                     <div class="flex-1 min-w-[150px] relative">
-                        <label for="subjectFilter" class="block text-sm font-medium text-slate-500 mb-1">المادة الدراسية</label>
-                        <button id="subjectFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
-                            <span id="subjectFilterDisplay">الكل</span>
-                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="subjectFilterDropdown" class="absolute z-20 w-full bg-white border border-slate-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
-                            <div class="p-2">
-                                <label class="flex items-center px-2 py-1 hover:bg-slate-100 rounded-md cursor-pointer">
-                                    <input type="checkbox" value="الكل" class="form-checkbox h-4 w-4 text-teal-600 rounded focus:ring-teal-500" checked>
-                                    <span class="mr-2 text-sm text-slate-700">الكل</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-[150px] relative">
-                        <label for="timeFilter" class="block text-sm font-medium text-slate-500 mb-1">نوع التحليل </label>
+                        <label for="timeFilter" class="block text-sm font-medium text-slate-500 mb-1">نوع التحليل</label>
                         <button id="timeFilterToggle" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-right flex justify-between items-center">
                             <span id="timeFilterDisplay">الكل</span>
                             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -186,6 +199,18 @@
                             </div>
                         </div>
                     </div>
+                    <!-- المستوى (levelFilter) -->
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="levelFilter" class="block text-sm font-medium text-slate-500 mb-1">المستوى</label>
+                        <select id="levelFilter" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                            <option value="الكل">الكل</option>
+                            <option value="top10">أعلى عشرة</option>
+                            <option value="bottom10">أدنى عشرة</option>
+                            <option value="greaterThan">أعلى من</option>
+                            <option value="lessThan">أدنى من</option>
+                        </select>
+                    </div>
+                    <!-- بحث بالاسم (studentSearchInput) -->
                     <div class="flex-1 min-w-[150px] relative">
                         <label for="studentSearchInput" class="block text-sm font-medium text-slate-500 mb-1">بحث بالاسم</label>
                         <input type="text" id="studentSearchInput" placeholder="ابحث عن طالب..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
@@ -342,12 +367,20 @@
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني متوسط درجات الطلاب في جميع المواد الدراسية. يمكنك استخدامه لتحديد نقاط القوة والضعف العامة في الأداء الأكاديمي.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="subjectAverageChart"></canvas>
-                        <button id="exportSubjectChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                            <span>تصدير الرسم</span>
-                        </button>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportSubjectChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportSubjectChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -356,12 +389,20 @@
                      <p class="text-sm text-slate-500 mb-4">يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="gradeDistributionChart"></canvas>
-                        <button id="exportGradeChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                            <span>تصدير الرسم</span>
-                        </button>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportGradeChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportGradeChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -372,12 +413,20 @@
                     <p class="text-sm text-slate-500 mb-4">يوضح هذا المخطط الدائري توزيع الطلاب ونسبتهم المئوية لكل صف دراسي.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="gradeStudentDistributionChart"></canvas>
-                        <button id="exportGradeStudentDistributionChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                            <span>تصدير الرسم</span>
-                        </button>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportGradeStudentDistributionChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportGradeStudentDistributionChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -388,12 +437,89 @@
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا المخطط البياني متوسط درجات الطلاب في مختلف الصفوف الدراسية.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="averageGradeByClassChart"></canvas>
-                        <button id="exportAverageGradeByClassChartBtn" class="mt-3 bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                            <span>تصدير الرسم</span>
-                        </button>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportAverageGradeByClassChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportAverageGradeByClassChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- New Comparative Charts Section -->
+            <section id="comparativeChartsSection" class="hidden grid grid-cols-1 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">مقارنة الأداء العام لكل فترة</h2>
+                    <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني متوسط الأداء العام عبر الفترات الزمنية المختارة، مع ارقام وسط كل عمود توضح ترتيب افضل أداء.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="overallPerformanceComparisonChart"></canvas>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportOverallPerformanceComparisonChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportOverallPerformanceComparisonChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">أداء المواد لكل فترة</h2>
+                    <p class="text-sm text-slate-500 mb-4">يعرض هذا الرسم البياني أداء كل مادة دراسية في كل فترة، مما يتيح مقارنة أداء المواد عبر الفترات.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="subjectPerformancePerMonthChart"></canvas>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportSubjectPerformancePerMonthChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportSubjectPerformancePerMonthChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
+                    <h2 class="text-xl font-bold text-slate-700 mb-4">أداء الصفوف لكل فترة</h2>
+                    <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني أداء الصفوف الدراسية فترة، مما يساعد في تحديد الفصول ذات الأداء المتفوق أو المتدني.</p>
+                    <div class="chart-container flex flex-col items-center gap-2">
+                        <canvas id="classPerformancePerMonthChart"></canvas>
+                        <div class="flex gap-2 mt-3">
+                            <button id="exportClassPerformancePerMonthChartBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير الرسم</span>
+                            </button>
+                            <button id="exportClassPerformancePerMonthChartDataBtn" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition-colors shadow flex items-center gap-1 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <span>تصدير البيانات Excel</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -404,7 +530,7 @@
                     <button id="downloadExcelBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
+                            </svg>
                         <span>تصدير إلى Excel</span>
                     </button>
                 </div>
@@ -431,6 +557,7 @@
                                 <th scope="col" class="px-1 py-2 whitespace-nowrap">التاريخ</th>
                                 <th scope="col" class="px-1 py-2 whitespace-nowrap">المجتمع</th>
                                 <th scope="col" class="px-1 py-2 whitespace-nowrap">سلوك</th>
+                                <th scope="col" class="px-2 py-2 whitespace-nowrap">نوع التحليل</th>
                                 <th scope="col" class="px-2 py-2 whitespace-nowrap">التقدير</th>
                             </tr>
                         </thead>
@@ -442,7 +569,7 @@
         </main>
        
         <footer class="text-center mb-2">
-            <p class="text-slate-500 mt-2"> حقوق الملكية @ لكمال الخطابي_781414133</p>
+<p class="text-slate-500 mt-2">جميع الحقوق محفوظة © م.كمال الخطابي للتواصل:00967781414133</p>
         </footer><br><br>
       
 
@@ -607,6 +734,20 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 
+
+    <!-- Percentage Input Modal -->
+    <div id="percentageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[103]">
+        <div class="bg-white p-6 rounded-lg max-w-sm w-full shadow-lg">
+            <h2 id="percentageModalTitle" class="text-xl font-bold mb-4 text-slate-700"></h2>
+            <p class="text-sm text-slate-600 mb-4">يرجى إدخال نسبة الدرجة المطلوبة من 1-100.</p>
+            <input type="number" id="percentageInput" min="1" max="100" placeholder="مثال: 75" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+            <p id="percentageError" class="text-red-500 text-xs mt-1 h-4"></p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="cancelPercentageBtn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200">إلغاء</button>
+                <button id="applyPercentageBtn" class="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600">موافق</button>
+            </div>
+        </div>
+    </div>
 
     <script src="main.js"></script>
 

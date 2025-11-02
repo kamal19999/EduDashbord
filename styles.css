@@ -14,6 +14,22 @@ body {
         max-width: 600px;
     }
 }
+
+/* New styles for full-width charts */
+.full-width-chart-container {
+    width: 100%;
+}
+
+.full-width-chart-container .chart-container {
+    max-width: 100%; /* Ensure full width on all screen sizes */
+}
+
+@media (min-width: 768px) {
+    .full-width-chart-container .chart-container {
+        height: 500px; /* Increased height for better visibility on larger screens */
+        max-height: 600px; /* Allow more height on larger screens */
+    }
+}
 .tooltip-visible {
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -34,4 +50,20 @@ body {
 }
 .multi-select-dropdown input[type="checkbox"] {
     margin-left: 8px; /* Space between checkbox and text */
+}
+
+/* Styles for the percentage input modal */
+#percentageModal {
+    transition: opacity 0.3s ease-in-out;
+}
+#percentageModal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+#percentageModal > div {
+    transform: translateY(-20px);
+    transition: transform 0.3s ease-in-out;
+}
+#percentageModal:not(.hidden) > div {
+    transform: translateY(0);
 }
