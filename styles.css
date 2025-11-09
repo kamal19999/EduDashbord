@@ -67,3 +67,8 @@ body {
 #percentageModal:not(.hidden) > div {
     transform: translateY(0);
 }
+
+/* لون خلفية مخصص لفئة "مُكمّل" في القائمة المنسدلة للفئات */
+.multi-select-dropdown input[value="مُكمّل"]:checked + span {
+    font-weight: bold;
+}

@@ -256,6 +256,24 @@
                         <p id="successCount" class="text-3xl font-bold text-slate-700">0</p>
                     </div>
                 </div>
+                <!-- New Card: Supplementary Count with Tooltip -->
+                <div class="relative group">
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4 h-full">
+                        <div class="bg-orange-100 p-3 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-slate-500 text-sm font-medium">عدد المُكمّلين</h3>
+                            <p id="supplementaryCount" class="text-3xl font-bold text-slate-700">0</p>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-full mb-2 w-64 bg-slate-800 text-white text-xs rounded-lg py-2 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none right-1/2 translate-x-1/2 z-30">
+                        الطالب المُكمّل هو من لديه مادة واحدة أو أكثر درجتها أقل من نصف الدرجة النهائية، مع أن نسبته العامة 50% فأكثر.
+                        <svg class="absolute text-slate-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255" xml:space="preserve"><polygon class="fill-current" points="0,0 127.5,127.5 255,0"/></svg>
+                    </div>
+                </div>
                 <!-- New Card: Failure Count -->
                 <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                     <div class="bg-red-100 p-3 rounded-full">

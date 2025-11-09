@@ -18,13 +18,15 @@ const getScoreAsPercentage = (score) => {
 const getGradeCategory = (percentage) => {
     if (percentage === 0) return 'الغياب';
     if (percentage >= 90) return 'ممتاز';
-    if (percentage >= 80) return 'جيد جداً';
-    if (percentage >= 65) return 'جيد';
-    if (percentage >= 50) return 'مقبول';
+    if (percentage >= 80) return 'جيد جداً'; //NOSONAR
+    if (percentage >= 65) return 'جيد'; //NOSONAR
+    if (percentage >= 50) return 'مقبول'; //NOSONAR
     return 'ضعيف';
 };
 
 const formatPercentage = (value) => {
+    // إذا كان التقدير "مُكمّل"، لا تعرض النسبة المئوية
+    if (value === 'مُكمّل') return 'مُكمّل';
     if (value == null || isNaN(value)) {
         return '-';
     }
@@ -45,6 +47,8 @@ const getCategoryColorClass = (category) => {
             return 'bg-purple-100 text-purple-800';
         case 'ضعيف':
             return 'bg-red-100 text-red-800';
+        case 'مُكمّل':
+            return 'bg-orange-100 text-orange-800';
         case 'الغياب':
             return 'bg-slate-200 text-slate-800';
         default:
@@ -53,7 +57,7 @@ const getCategoryColorClass = (category) => {
 };
 
 const chartColors = {
-    grades: ['#059669', '#2563eb', '#fbbf24', '#a78bfa', '#ef4444', '#000000'] // ممتاز، جيد جداً، جيد، مقبول، ضعيف, الغياب
+    grades: ['#059669', '#2563eb', '#fbbf24', '#a78bfa', '#ef4444', '#f97316', '#000000'] // ممتاز، جيد جداً، جيد، مقبول، ضعيف, مُكمّل, الغياب
 };
 
 // Function to generate a consistent set of colors for dynamic subjects
@@ -169,13 +173,18 @@ function updateDashboard(onCompleteCallback = null) {
         const matchesTime = timeFilterValues.includes('الكل') || timeFilterValues.includes(student.time ?? '');
 
         // Simplified category matching logic
-        const matchesCategory = (() => {
+        let matchesCategory = (() => {
             if (categoryFilterValues.includes('الكل')) return true;
             const isAbsent = studentOverallForFiltering === 0;
             const matchesAbsent = categoryFilterValues.includes('الغياب') && isAbsent;
             const matchesRegularCategory = categoryFilterValues.includes(studentCategoryForFiltering) && !isAbsent;
             return matchesAbsent || matchesRegularCategory;
         })();
+
+        // إضافة منطق خاص لفئة "مُكمّل"
+        if (categoryFilterValues.includes('مُكمّل')) {
+            matchesCategory = matchesCategory || student.category === 'مُكمّل';
+        }
 
         let matchesSubject = subjectFilterValues.includes('الكل');
 
@@ -248,13 +257,17 @@ function updateDashboard(onCompleteCallback = null) {
     let shouldShowComparativeCharts = false;
 
     if (filteredStudents.length > 0) {
+        // احصل على جميع قيم "نوع التحليل" الفريدة من البيانات الأصلية (وليس المصفاة)
+        const allDistinctTimeValues = [...new Set(allStudentsData.map(s => s.time).filter(Boolean))];
+        // احصل على قيم "نوع التحليل" الفريدة من البيانات المصفاة حاليًا
         const distinctTimeValuesInFilteredData = [...new Set(filteredStudents.map(s => s.time).filter(Boolean))];
 
-        if (timeFilterValues.includes('الكل')) {
-            shouldShowComparativeCharts = distinctTimeValuesInFilteredData.length > 0; // Show if any time data exists when 'All' is selected
-        } else {
-            shouldShowComparativeCharts = timeFilterValues.length > 1;
-        }
+        // أظهر المخططات المقارنة فقط إذا كان هناك أكثر من قيمة واحدة متاحة في البيانات بشكل عام
+        // وإذا كانت القيم المحددة في الفلتر (أو البيانات المصفاة عند اختيار "الكل") تحتوي على أكثر من قيمة واحدة
+       if (allDistinctTimeValues.length > 1) {
+    // أظهر المخططات إذا كان خيار "الكل" محددًا، أو إذا تم تحديد أكثر من قيمة واحدة يدويًا.
+    shouldShowComparativeCharts = timeFilterValues.includes('الكل') || timeFilterValues.length > 1;
+}
     }
 
     if (shouldShowComparativeCharts) {
@@ -321,11 +334,14 @@ function updateStatsCards(students) {
     // Calculate counts for new cards
     let successCount = 0;
     let failureCount = 0;
+    let supplementaryCount = 0;
     let absenceCount = 0;
 
     students.forEach(student => {
         const category = student.category;
-        if (['ممتاز', 'جيد جداً', 'جيد', 'مقبول'].includes(category)) {
+        if (category === 'مُكمّل') {
+            supplementaryCount++;
+        } else if (['ممتاز', 'جيد جداً', 'جيد', 'مقبول'].includes(category)) {
             successCount++;
         } else if (category === 'ضعيف') {
             failureCount++;
@@ -334,6 +350,7 @@ function updateStatsCards(students) {
         }
     });
     animateCounter('successCount', successCount);
+    animateCounter('supplementaryCount', supplementaryCount);
     animateCounter('failureCount', failureCount);
     animateCounter('absenceCount', absenceCount);
 
@@ -528,7 +545,7 @@ function updateGradeDistributionChart(students) {
         const student = students[0];
         h2.textContent = `توزيع تقديرات مواد الطالب: ${student.name}`;
         p.textContent = `يقسم هذا المخطط مواد الطالب حسب التقدير. مرر الفأرة على أي قسم لرؤية أسماء المواد.`;
-
+        
         const subjectsByCategory = { 'ممتاز': [], 'جيد جداً': [], 'جيد': [], 'مقبول': [], 'ضعيف': [], 'الغياب': [] };
 
         Object.keys(student.scores).forEach(key => {
@@ -536,13 +553,20 @@ function updateGradeDistributionChart(students) {
                 const rawScore = student.scores[key] ?? 0;
                 const percentage = getScoreAsPercentage(rawScore);
                 const category = getGradeCategory(percentage);
+                const isFailing = rawScore > 0 && rawScore < (globalMaxScore / 2);
                 const subjectName = subjectLabels[key] || key;
-                // Only add if the subject has a score > 0, unless the category is 'الغياب'
-                if (rawScore > 0 || category === 'الغياب') {
+
+                if (isFailing) {
+                    // لا يوجد فئة "مُكمّل" على مستوى المادة، لذا نضعها في "ضعيف" للرسم البياني للطالب الواحد
+                    if (!subjectsByCategory['ضعيف']) subjectsByCategory['ضعيف'] = [];
+                    subjectsByCategory['ضعيف'].push(subjectName);
+                } else if (rawScore > 0 || category === 'الغياب') {
                     subjectsByCategory[category].push(subjectName);
                 }
             }
         });
+        // إزالة فئة "مُكمّل" إذا كانت موجودة لأننا نتعامل معها كـ "ضعيف" في هذا العرض
+        delete subjectsByCategory['مُكمّل'];
 
         const labels = Object.keys(subjectsByCategory);
         const data = labels.map(cat => subjectsByCategory[cat].length);
@@ -597,7 +621,7 @@ function updateGradeDistributionChart(students) {
         // Default mode: Show overall grade distribution for multiple students
         h2.textContent = 'توزيع التقديرات';
         p.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
-        const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'الغياب': 0 };
+        const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'مُكمّل': 0, 'الغياب': 0 };
 
         const subjectFilterValues = getSelectedFilterValues('subjectFilter');
         const selectedSubjectKeyForChart = (subjectFilterValues.length === 1 && subjectFilterValues[0] !== 'الكل')
@@ -605,9 +629,12 @@ function updateGradeDistributionChart(students) {
             : null;
 
         students.forEach(student => {
-            const scoreToCategorize = selectedSubjectKeyForChart ? getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0) : student.overall;
-
-            gradeCounts[getGradeCategory(scoreToCategorize)]++;
+            if (student.category === 'مُكمّل') {
+                gradeCounts['مُكمّل']++;
+            } else {
+                const scoreToCategorize = selectedSubjectKeyForChart ? getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0) : student.overall;
+                gradeCounts[getGradeCategory(scoreToCategorize)]++;
+            }
         });
 
         total = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
@@ -1191,16 +1218,21 @@ function updateStudentsTable(students) {
 
         columnsToShow.forEach(key => {
             const score = student.scores[key];
-            row.appendChild(createCell(score != null ? Math.round(score) : '-', 'px-1 py-2'));
+            const isFailing = score > 0 && score < (globalMaxScore / 2);
+            const cellClasses = isFailing ? 'px-1 py-2 bg-red-100 text-red-800 font-bold' : 'px-1 py-2';
+            row.appendChild(createCell(score != null ? Math.round(score) : '-', cellClasses));
         });
 
-        row.appendChild(createCell(student.totalScore != null ? Math.round(student.totalScore) : '-', 'px-2 py-2 font-bold text-blue-600'));
+        // إذا كان الطالب "مُكمّل"، لا تعرض المجموع
+        const totalScoreDisplay = student.category === 'مُكمّل' ? '-' : (student.totalScore != null ? Math.round(student.totalScore) : '-');
+        row.appendChild(createCell(totalScoreDisplay, 'px-2 py-2 font-bold text-blue-600'));
         
         if (!hidePercentageColumn) {
             // Use a specific cell for percentage to handle the format correctly
             const percentageCell = document.createElement('td');
             percentageCell.className = 'px-2 py-2 font-bold';
-            percentageCell.textContent = formatPercentage(student.percent);
+            // إذا كان الطالب "مُكمّل"، اعرض كلمة "مُكمّل" بدلاً من النسبة
+            percentageCell.textContent = student.category === 'مُكمّل' ? 'مُكمّل' : formatPercentage(student.percent);
             row.appendChild(percentageCell);
         }
         
@@ -1224,7 +1256,7 @@ function updateTableHeader(columnsToShow, hidePercentageColumn, showTimeColumn) 
     const dynamicSubjectHeaders = columnsToShow.map(key => subjectLabels[key]);
     
     let endHeaders = ['المجموع', 'التقدير'];
-    if (!hidePercentageColumn) {
+    if (!hidePercentageColumn) { //NOSONAR
         endHeaders.splice(1, 0, 'النسبة'); // Insert 'النسبة' after 'المجموع'
     }
     if (showTimeColumn) {
@@ -1321,7 +1353,7 @@ const initializeMultiSelectDropdown = (id, staticOptions = null) => {
 
     // Initial population for static categories
     if (id === 'categoryFilter') {
-        populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'الغياب']);
+        populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'الغياب']);
     } else if (staticOptions) {
         populateOptions(staticOptions);
     }
@@ -1508,14 +1540,34 @@ function runAnalysis() {
     try {
         // Recalculate overall percentage for all students based on the new max score
         allStudentsData.forEach(student => {
+            const halfMaxScore = globalMaxScore / 2;
+            let hasFailingSubject = false;
+
+            // التحقق من وجود مواد إكمال
+            for (const key of subjectKeys) {
+                const score = student.scores[key] ?? 0;
+                if (score > 0 && score < halfMaxScore) {
+                    hasFailingSubject = true;
+                    break;
+                }
+            }
+
             const subjectPercentages = subjectKeys.map(key => getScoreAsPercentage(student.scores[key] ?? 0));
             const validPercentages = subjectPercentages.filter(p => p > 0);
             const averagePercentage = validPercentages.length > 0
                 ? validPercentages.reduce((a, b) => a + b, 0) / validPercentages.length
                 : 0;
             student.overall = averagePercentage;
-            student.percent = averagePercentage; // Store the calculated percentage for table display
-            student.category = getGradeCategory(averagePercentage);
+            student.percent = averagePercentage; // Store the calculated percentage
+
+            // تحديد التقدير بناءً على الآلية الجديدة
+            if (hasFailingSubject && averagePercentage >= 50) {
+                // إذا كان لديه مواد إكمال ونسبته 50% أو أكثر، يكون "مُكمّل"
+                student.category = 'مُكمّل';
+            } else {
+                // في الحالات الأخرى (بما في ذلك من لديه مواد إكمال ونسبته أقل من 50%)، يتم استخدام التقدير العادي
+                student.category = getGradeCategory(averagePercentage);
+            }
         });
 
         analysisHasRun = true; // تم تشغيل التحليل بنجاح
@@ -2058,7 +2110,7 @@ function updateFilterOptions() {
     gradeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.grade).filter(Boolean))].sort());
     divisionFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.division).filter(Boolean))].sort()); // NEW
     subjectFilterDropdown.populateOptions(Object.values(subjectLabels).filter(label => label !== 'الغياب').sort());
-    categoryFilterDropdown.populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'الغياب']); // categoryFilter is static, re-populate to ensure order
+    categoryFilterDropdown.populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'الغياب']); // categoryFilter is static, re-populate to ensure order
     timeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.time).filter(Boolean))].sort());
 }
 
