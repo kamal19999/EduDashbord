@@ -68,6 +68,35 @@ body {
     transform: translateY(0);
 }
 
+/* Styles for the floating filter section */
+.filters-floating {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    z-index: 40; /* Below the floating button but above content */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* New styles for smooth filter collapse and button appearance */
+#filtersSection {
+    transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+    transform-origin: top right; /* Animate towards the top right corner */
+}
+
+#filtersSection.filters-collapsing {
+    opacity: 0;
+    transform: scale(0.1) translateX(50%);
+    visibility: hidden;
+}
+
+#floatingFilterBtn.visible {
+    transform: scale(1); /* Scale up to be visible */
+    opacity: 1;
+}
+
 /* لون خلفية مخصص لفئة "مُكمّل" في القائمة المنسدلة للفئات */
 .multi-select-dropdown input[value="مُكمّل"]:checked + span {
     font-weight: bold;

@@ -16,8 +16,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Amiri font for PDF Arabic support -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Tajawal font for PDF Arabic support -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Cairo font for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -33,11 +35,11 @@
         </div>
     </div>
 
-    <button id="helpBtn" class="absolute top-4 left-4 text-blue-600 hover:text-blue-800 flex items-center space-x-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 14h.01M16 10h.01M12 18h.01M12 6h.01" />
+    <button id="helpBtn" class="group absolute top-4 left-4 z-40 flex items-center gap-2 px-3 py-2 bg-white/70 backdrop-blur-sm border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-teal-500 group-hover:text-teal-600 transition-colors">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
         </svg>
-        <span class="text-sm font-medium">تعليمات</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">تعليمات</span>
     </button>
 
     <div class="container mx-auto p-4 md:p-8">
@@ -49,7 +51,7 @@
             </header>
         </div>
 
-    <div class="sticky top-6 right-12 z-50 flex flex-col items-end gap-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 border border-slate-200" style="max-width: 300px;">
+    <div class="flex flex-col items-end gap-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 border border-slate-200" style="max-width: 300px;">
     <label class="block text-teal-700 mb-1">1. يرجى رفع ملف درجات الطلاب هنا لتحليلها</label>
     <div class="relative w-full">
         <input type="file" id="csvUpload" accept=".csv,.xlsx,.xls" class="block text-sm text-slate-500 mb-2 cursor-pointer w-full border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
@@ -60,15 +62,15 @@
         </div>
     </div>
 
-        <div id="analysisControls" class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10">
+        <div id="analysisControls" class="bg-white p-4 rounded-xl shadow-md mb-8">
             <div class="flex flex-wrap items-center justify-center gap-4">
                 <div class="flex-1 min-w-[200px]">
                     <label for="maxScoreInput" class="block text-sm font-medium text-slate-600 mb-1">2. أدخل الدرجة النهائية الموحدة</label>
-                    <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" disabled>
+                    <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
                     <p id="maxScoreError" class="text-red-500 text-xs mt-1 h-4"></p>
                 </div>
                 <div class="mt-5 flex items-center gap-2">
-                    <button id="analyzeBtn" class="bg-teal-500 text-white py-2 px-6 rounded-lg hover:bg-teal-600 transition-colors shadow disabled:bg-slate-300 disabled:cursor-not-allowed">3. تحليل النتائج</button>
+                    <button id="analyzeBtn" class="bg-teal-500 text-white py-2 px-6 rounded-lg hover:bg-teal-600 transition-colors shadow">3. تحليل النتائج</button>
                     <button id="resetAppBtn" class="bg-rose-500 text-white py-2 px-4 rounded-lg hover:bg-rose-600 transition-colors shadow hidden flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l1.5 1.5A9 9 0 0120.5 15M20 20l-1.5-1.5A9 9 0 003.5 9" /></svg>
                         <span>إعادة الضبط</span>
@@ -77,7 +79,8 @@
             </div>
         </div>
 
-        <div id="filtersSection" class="bg-white p-4 rounded-xl shadow-md mb-8 sticky top-4 z-10 hidden">
+        <!-- Container to manage filter section position -->
+        <div id="filtersContainer" class="mb-8 h-auto"> <div id="filtersSection" class="bg-white p-4 rounded-xl shadow-md hidden">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div class="md:col-span-1">
                     <h2 class="text-lg text-center font-semibold text-slate-600">خيارات التصفية</h2>
@@ -230,9 +233,10 @@
                 </div>
             </div>
         </div>
+        </div></div>
 
         <main id="dashboardContent" class="hidden">
-            <section id="stats-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <section id="stats-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                     <div class="bg-teal-100 p-3 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
@@ -326,7 +330,7 @@
                     </div>
                 </div>
                 <!-- New Card: Top Performing Student -->
-                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4 hidden">
                     <div class="bg-green-100 p-3 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z" />
@@ -339,7 +343,7 @@
                     </div>
                 </div>
                 <!-- New Card: Bottom Performing Student -->
-                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4 hidden">
                     <div class="bg-red-100 p-3 rounded-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z" />
@@ -544,13 +548,19 @@
 
             <section class="bg-white p-6 rounded-xl shadow-md">
                 <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
-                    <h2 id="studentsTableTitle" class="text-xl font-bold text-slate-700">قائمة الطلاب والدرجات</h2>
-                    <button id="downloadExcelBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        <span>تصدير إلى Excel</span>
-                    </button>
+                    <div class="flex items-center gap-4">
+                        <h2 id="studentsTableTitle" class="text-xl font-bold text-slate-700">قائمة الطلاب والدرجات</h2>
+                        <button id="printStudentCardBtn" class="bg-sky-500 text-white py-1 px-3 rounded-md hover:bg-sky-600 transition-colors shadow hidden flex items-center gap-2 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h12V6h-4a1 1 0 110-2h4a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                            <span>طباعة بطاقة الطالب</span>
+                        </button>
+                    </div>
+                     <button id="downloadExcelBtn" class="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600 transition-colors shadow flex items-center gap-1 text-xs">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                         </svg>
+                         <span>تصدير إلى Excel</span>
+                     </button>
                 </div>
                 <p class="text-sm text-slate-500 mb-4">هنا يمكنك الاطلاع على الدرجات التفصيلية لكل طالب بناءً على خيارات التصفية المحددة. استخدم هذا الجدول لمراجعة أداء الطلاب .</p>
                 <div class="overflow-x-auto">
@@ -582,6 +592,102 @@
                         <tbody id="studentsTableBody">
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Student Card Template (Hidden) -->
+            <div id="studentCardTemplate" class="hidden" style="width: 800px; font-family: 'Cairo', sans-serif;">
+                <div class="p-6 bg-white border-4 border-teal-500 rounded-lg">
+                    <!-- Header -->
+                    <div class="flex justify-between items-center pb-4 border-b-2 border-slate-200">
+                        <div class="text-right">
+                            <h1 id="cardSchoolName" class="text-2xl font-bold text-teal-700">اسم المدرسة</h1>
+                            <p class="text-sm text-slate-500">العام الدراسي 2023-2024</p>
+                        </div>
+                        <div id="cardLogoContainer">
+                            <!-- Logo will be injected here -->
+                        </div>
+                    </div>
+            
+                    <!-- Title -->
+                    <div class="text-center my-6">
+                        <h2 class="text-3xl font-bold text-slate-800">بطاقة درجات الطالب</h2>
+                    </div>
+            
+                    <!-- Student Info -->
+                    <div class="grid grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-lg">
+                        <div>
+                            <p class="text-sm text-slate-500">اسم الطالب</p>
+                            <p id="cardStudentName" class="font-bold text-lg text-slate-900">-</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-slate-500">الصف الدراسي</p>
+                            <p id="cardStudentGrade" class="font-bold text-lg text-slate-900">-</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-slate-500">القسم</p>
+                            <p id="cardStudentSection" class="font-bold text-lg text-slate-900">-</p>
+                        </div>
+                    </div>
+            
+                    <!-- Grades Table -->
+                    <h3 class="text-xl font-bold text-slate-700 mb-3">بيان الدرجات</h3>
+                    <table class="w-full text-sm text-center mb-6">
+                        <thead class="bg-teal-600 text-white">
+                            <tr>
+                                <th class="p-2 rounded-tr-lg">المادة</th>
+                                <th>الدرجة</th>
+                                <th class="rounded-tl-lg">التقدير</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cardGradesTableBody">
+                            <!-- Grades will be injected here -->
+                        </tbody>
+                    </table>
+            
+                    <!-- Overall Performance -->
+                    <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-slate-500">المجموع الكلي</p>
+                            <p id="cardTotalScore" class="font-bold text-xl text-blue-800">-</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-sm text-slate-500">النسبة المئوية</p>
+                            <p id="cardPercentage" class="font-bold text-xl text-green-800">-</p>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-lg">
+                            <p class="text-sm text-slate-500">التقدير العام</p>
+                            <p id="cardOverallCategory" class="font-bold text-xl text-amber-800">-</p>
+                        </div>
+                    </div>
+            
+                    <!-- Footer -->
+                    <div class="flex justify-between items-center pt-4 border-t-2 border-slate-200 mt-8 text-xs text-slate-600">
+                        <div class="text-center">
+                            <p class="font-bold mb-4">ختم المدرسة</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-bold mb-4">توقيع ولي الأمر</p>
+                        </div>
+                        <p>تاريخ الإصدار: <span id="cardDate"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approved Subjects by Class Table - MOVED AND CORRECTED -->
+            <section id="approvedSubjectsSection" class="bg-white p-6 rounded-xl shadow-md mt-8 hidden">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+                    <h2 class="text-xl font-bold text-slate-700">المواد المعتمدة لكل صف</h2>
+                </div>
+                <p class="text-sm text-slate-500 mb-4">
+                    يعرض هذا الجدول عدد المواد المعتمدة وأسماءها لكل صف دراسي بناءً على كامل البيانات التي تم رفعها.
+                    <br>
+                    <span class="font-semibold">ملاحظة:</span> هذا الجدول لا يتأثر بخيارات التصفية المطبقة أعلاه.
+                </p>
+                <div class="overflow-x-auto">
+                    <div id="approvedSubjectsByClassTableContainer">
+                        <p class="text-center py-4 text-slate-500">لا توجد بيانات لعرض المواد المعتمدة حسب الصف.</p>
+                    </div>
                 </div>
             </section>
         </main>
@@ -766,6 +872,14 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
     </div>
+
+    <!-- Floating Filter Button (Initially Hidden) -->
+    <button id="floatingFilterBtn" class="fixed top-6 right-6 z-50 bg-teal-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-teal-600 transition-all duration-300 transform scale-0 opacity-0 hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 12.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-4.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+        </svg>
+    </button>
+
 
     <script src="main.js"></script>
 

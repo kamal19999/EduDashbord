@@ -1,17 +1,19 @@
 let subjectAverageChart, gradeDistributionChart, gradeStudentDistributionChart, averageGradeByClassChart,
     overallPerformanceComparisonChart, subjectPerformancePerMonthChart, classPerformancePerMonthChart;
 let allStudentsData = [];
+let filteredStudents = []; // Global variable to hold currently filtered students
 let amiriFont = null; // To hold the base64 font
 let amiriBoldFont = null; // To hold the bold font
+let approvedSubjectsByGrade = {}; // NEW: To store approved subjects for each grade
 let analysisHasRun = false; // لتتبع ما إذا كان التحليل قد تم
 let shouldShowTimeColumn = false; // New global variable to control visibility of 'نوع التحليل' column
 
 let subjectLabels = {}; // Maps key to clean name, e.g., { 'math': 'الرياضيات' }
 let subjectKeys = [];   // e.g., ['math', 'science']
 let globalMaxScore = 100; // Will be set by the user
-//الحمد لله وسبحان الله ولا إله إلا الله والله أكبر 
+//الحمد لله، وسبحان الله، لا إله إلا الله والله اكبر 
 const getScoreAsPercentage = (score) => {
-    if (globalMaxScore === 0) return 0;
+    if (globalMaxScore === 0) return 0; //NOSONAR
     return (score / globalMaxScore) * 100;
 };
 // التعديل رقم 740
@@ -49,7 +51,7 @@ const getCategoryColorClass = (category) => {
             return 'bg-red-100 text-red-800';
         case 'مُكمّل':
             return 'bg-orange-100 text-orange-800';
-        case 'الغياب':
+        case 'غياب':
             return 'bg-slate-200 text-slate-800';
         default:
             return 'text-slate-700'; // افتراضي
@@ -57,7 +59,7 @@ const getCategoryColorClass = (category) => {
 };
 
 const chartColors = {
-    grades: ['#059669', '#2563eb', '#fbbf24', '#a78bfa', '#ef4444', '#f97316', '#000000'] // ممتاز، جيد جداً، جيد، مقبول، ضعيف, مُكمّل, الغياب
+    grades: ['#059669', '#2563eb', '#fbbf24', '#a78bfa', '#ef4444', '#f97316', '#000000'] // ممتاز، جيد جداً، جيد، مقبول، ضعيف, مُكمّل, غياب
 };
 
 // Function to generate a consistent set of colors for dynamic subjects
@@ -127,11 +129,43 @@ const updateFilterDisplay = (filterId, selectedValues) => {
     }
 };
 
+function updateSubjectFilterOptions(selectedGrades) {
+    if (!analysisHasRun) return; // اذكر الله
+    const currentSelectedSubjects = getSelectedFilterValues('subjectFilter');
+    let subjectsToShow;
+
+    // إذا تم تحديد "الكل" أو صفوف متعددة، أظهر جميع المواد.
+    if (selectedGrades.includes('الكل') || selectedGrades.length !== 1) {
+        subjectsToShow = Object.values(subjectLabels).filter(label => label !== 'غياب').sort();
+    } else {
+        // إذا تم تحديد صف واحد، أظهر المواد المعتمدة له فقط
+        const selectedGrade = selectedGrades[0];
+        const approvedKeys = approvedSubjectsByGrade[selectedGrade] || [];
+        subjectsToShow = approvedKeys.map(key => subjectLabels[key]).filter(Boolean).sort();
+    }
+
+    // أعد تعبئة قائمة المواد الدراسية بالخيارات الجديدة
+    subjectFilterDropdown.populateOptions(subjectsToShow);
+
+    // تحقق مما إذا كانت التحديدات الحالية لا تزال صالحة
+    const validSelections = currentSelectedSubjects.filter(subject => 
+        subject === 'الكل' || subjectsToShow.includes(subject)
+    );
+
+    if (validSelections.length === 0) {
+        // إذا لم تكن هناك تحديدات صالحة، أعد التعيين إلى "الكل"
+        subjectFilterDropdown.reset();
+    } else {
+        // وإلا، حافظ على التحديدات الصالحة
+        subjectFilterDropdown.setSelected(validSelections);
+    }
+}
+
 let currentPercentageFilter = null; // Global variable to store the percentage for filtering
 let debounceTimer;
 function updateDashboard(onCompleteCallback = null) {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
+    debounceTimer = setTimeout(() => { //NOSONAR
     const sectionFilterValues = getSelectedFilterValues('sectionFilter'); // القسم
     const gradeFilterValues = getSelectedFilterValues('gradeFilter'); // الصف الدراسي
     const divisionFilterValues = getSelectedFilterValues('divisionFilter'); // الشعبة - NEW
@@ -140,6 +174,16 @@ function updateDashboard(onCompleteCallback = null) {
     const levelFilter = document.getElementById('levelFilter').value; // المستوى - Single select
     const timeFilterValues = getSelectedFilterValues('timeFilter'); // نوع التحليل
     const searchQuery = document.getElementById('studentSearchInput').value.trim().toLowerCase();
+
+    // التحكم في إظهار أو إخفاء جدول المواد المعتمدة بناءً على البحث
+    const approvedSubjectsSection = document.getElementById('approvedSubjectsSection');
+    if (approvedSubjectsSection) {
+        if (searchQuery.includes('المواد')) {
+            approvedSubjectsSection.classList.remove('hidden');
+        } else {
+            approvedSubjectsSection.classList.add('hidden');
+        }
+    }
 
     // If 'greaterThan' or 'lessThan' is selected, but no percentage is set,
     // or if the filter is changed away from these options, reset the percentage.
@@ -172,33 +216,39 @@ function updateDashboard(onCompleteCallback = null) {
         const matchesDivision = divisionFilterValues.includes('الكل') || divisionFilterValues.includes(student.division ?? ''); // NEW
         const matchesTime = timeFilterValues.includes('الكل') || timeFilterValues.includes(student.time ?? '');
 
-        // Simplified category matching logic
+        // Simplified category matching logic---كمال
         let matchesCategory = (() => {
             if (categoryFilterValues.includes('الكل')) return true;
             const isAbsent = studentOverallForFiltering === 0;
-            const matchesAbsent = categoryFilterValues.includes('الغياب') && isAbsent;
+            const matchesAbsent = categoryFilterValues.includes('غياب') && isAbsent;
             const matchesRegularCategory = categoryFilterValues.includes(studentCategoryForFiltering) && !isAbsent;
             return matchesAbsent || matchesRegularCategory;
         })();
 
         // إضافة منطق خاص لفئة "مُكمّل"
-        if (categoryFilterValues.includes('مُكمّل')) {
+        if (categoryFilterValues.includes('مُكمّل')) { //NOSONAR
+            // إذا لم يتم تحديد مادة معينة، فإننا نبحث عن الطلاب الذين تم تصنيفهم على أنهم "مُكمّل" بشكل عام
+            if (!selectedSubjectKeyForOverall) {
             matchesCategory = matchesCategory || student.category === 'مُكمّل';
+            } else {
+                // إذا تم تحديد مادة معينة، فإننا نعامل فلتر "مُكمّل" مثل فلتر "ضعيف" لهذه المادة
+                matchesCategory = matchesCategory || studentCategoryForFiltering === 'ضعيف';
+            }
         }
 
         let matchesSubject = subjectFilterValues.includes('الكل');
 
         if (!subjectFilterValues.includes('الكل')) {
             // If filtering for 'Absent' and a single subject is chosen, the logic must find students with a score of 0.
-            if (categoryFilterValues.includes('الغياب') && selectedSubjectKeyForOverall) {
+            if (categoryFilterValues.includes('غياب') && selectedSubjectKeyForOverall) {
                 // The category match already confirmed absence based on this subject's score.
                 // So, we just need to confirm the match.
                 matchesSubject = true;
             } else {
-                // Original logic: check if student has a score > 0 in any of the selected subjects.
+                // Updated logic: check if student has a score (including 0) in any of the selected subjects.
                 matchesSubject = subjectFilterValues.some(sf => {
                     const key = subjectKeyMap[sf];
-                    return key && (student.scores[key] ?? 0) > 0;
+                    return key && student.scores.hasOwnProperty(key) && student.scores[key] != null;
                 });
             }
         }
@@ -223,6 +273,9 @@ function updateDashboard(onCompleteCallback = null) {
         filteredStudents.sort((a, b) => a.overall - b.overall);
         filteredStudents = filteredStudents.slice(0, 10);
     }
+    
+    // Assign to global filteredStudents
+    window.filteredStudents = filteredStudents; // Make it accessible globally for PDF export
 
     const titleParts = ['كشف الطلاب والدرجات'];
     const filters = {
@@ -345,7 +398,7 @@ function updateStatsCards(students) {
             successCount++;
         } else if (category === 'ضعيف') {
             failureCount++;
-        } else if (category === 'الغياب') {
+        } else if (category === 'غياب') {
             absenceCount++;
         }
     });
@@ -546,7 +599,7 @@ function updateGradeDistributionChart(students) {
         h2.textContent = `توزيع تقديرات مواد الطالب: ${student.name}`;
         p.textContent = `يقسم هذا المخطط مواد الطالب حسب التقدير. مرر الفأرة على أي قسم لرؤية أسماء المواد.`;
         
-        const subjectsByCategory = { 'ممتاز': [], 'جيد جداً': [], 'جيد': [], 'مقبول': [], 'ضعيف': [], 'الغياب': [] };
+        const subjectsByCategory = { 'ممتاز': [], 'جيد جداً': [], 'جيد': [], 'مقبول': [], 'ضعيف': [], 'غياب': [] }; //Kamallllllll
 
         Object.keys(student.scores).forEach(key => {
             if (key !== 'behavior') {
@@ -560,7 +613,7 @@ function updateGradeDistributionChart(students) {
                     // لا يوجد فئة "مُكمّل" على مستوى المادة، لذا نضعها في "ضعيف" للرسم البياني للطالب الواحد
                     if (!subjectsByCategory['ضعيف']) subjectsByCategory['ضعيف'] = [];
                     subjectsByCategory['ضعيف'].push(subjectName);
-                } else if (rawScore > 0 || category === 'الغياب') {
+                } else if (rawScore > 0 || category === 'غياب') {
                     subjectsByCategory[category].push(subjectName);
                 }
             }
@@ -619,21 +672,31 @@ function updateGradeDistributionChart(students) {
         };
     } else {
         // Default mode: Show overall grade distribution for multiple students
-        h2.textContent = 'توزيع التقديرات';
-        p.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
-        const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'مُكمّل': 0, 'الغياب': 0 };
-
         const subjectFilterValues = getSelectedFilterValues('subjectFilter');
         const selectedSubjectKeyForChart = (subjectFilterValues.length === 1 && subjectFilterValues[0] !== 'الكل')
             ? subjectKeys.find(key => subjectLabels[key] === subjectFilterValues[0])
             : null;
 
+        if (selectedSubjectKeyForChart) {
+            h2.textContent = `توزيع التقديرات لمادة: ${subjectLabels[selectedSubjectKeyForChart]}`;
+            p.textContent = `يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير لمادة ${subjectLabels[selectedSubjectKeyForChart]}.`;
+        } else {
+            h2.textContent = 'توزيع التقديرات';
+            p.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
+        }
+
+        const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'مُكمّل': 0, 'غياب': 0 };
+
         students.forEach(student => {
-            if (student.category === 'مُكمّل') {
-                gradeCounts['مُكمّل']++;
+            if (selectedSubjectKeyForChart) {
+                // If a specific subject is selected, categorize based on that subject's score.
+                // 'مُكمّل' is not a category for a single subject.
+                const subjectScorePercentage = getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0);
+                gradeCounts[getGradeCategory(subjectScorePercentage)]++;
             } else {
-                const scoreToCategorize = selectedSubjectKeyForChart ? getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0) : student.overall;
-                gradeCounts[getGradeCategory(scoreToCategorize)]++;
+                // If no specific subject is selected, use the student's overall category.
+                // This includes 'مُكمّل' if the student is categorized as such overall.
+                gradeCounts[student.category]++;
             }
         });
 
@@ -1161,23 +1224,31 @@ function updateClassPerformancePerMonthChart(students, timeFilterValues) {
 function updateStudentsTable(students) {
     const tableBody = document.getElementById('studentsTableBody');
     const subjectFilterValues = getSelectedFilterValues('subjectFilter');
-    const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
-
+    const searchQuery = document.getElementById('studentSearchInput').value.trim().toLowerCase();
     // Determine which subject columns to show
     let columnsToShow;
-    if (subjectFilterValues.includes('الكل')) {
-        // Show all subjects that are not completely empty across all students
+    const selectedGrades = getSelectedFilterValues('gradeFilter'); // Get selected grades
+    const selectedSubjects = getSelectedFilterValues('subjectFilter'); // Get selected subjects
+    const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
+
+    // If a single grade is selected AND 'الكل' is selected in subjects,
+    // show only approved subjects for that grade.
+    if (selectedGrades.length === 1 && selectedGrades[0] !== 'الكل' && selectedSubjects.includes('الكل')) {
+        const selectedGrade = selectedGrades[0];
+        columnsToShow = approvedSubjectsByGrade[selectedGrade] || [];
+    } else if (selectedSubjects.includes('الكل')) {
+        // Show all subjects that are not completely empty across all students in the current filtered view
         columnsToShow = subjectKeys.filter(key => 
             key !== 'time' && 
-            !students.every(student => (student.scores[key] ?? null) === null || student.scores[key] === 0)
+            students.some(student => (student.scores[key] ?? null) !== null)
         );
     } else {
-        // When subjects are filtered, show exactly those subjects.
-        const selectedSubjectKeys = subjectFilterValues.map(label => subjectKeyMap[label]).filter(Boolean);
+        // When specific subjects are filtered, show exactly those subjects.
+        const selectedSubjectKeys = selectedSubjects.map(label => subjectKeyMap[label]).filter(Boolean);
         columnsToShow = selectedSubjectKeys;
     }
 
-    const hidePercentageColumn = subjectFilterValues.length > 0 && !subjectFilterValues.includes('الكل');
+    const hidePercentageColumn = selectedSubjects.length > 0 && !selectedSubjects.includes('الكل');
     
     updateTableHeader(columnsToShow, hidePercentageColumn, shouldShowTimeColumn);
 
@@ -1218,21 +1289,28 @@ function updateStudentsTable(students) {
 
         columnsToShow.forEach(key => {
             const score = student.scores[key];
+            const isApproved = (approvedSubjectsByGrade[student.grade] || []).includes(key);
+            const isAbsentInApproved = isApproved && score === 0;
             const isFailing = score > 0 && score < (globalMaxScore / 2);
-            const cellClasses = isFailing ? 'px-1 py-2 bg-red-100 text-red-800 font-bold' : 'px-1 py-2';
+            let cellClasses = 'px-1 py-2';
+            if (isAbsentInApproved) cellClasses = 'px-1 py-2 bg-slate-700 text-white font-bold';
+            else if (isFailing) cellClasses = 'px-1 py-2 bg-red-100 text-red-800 font-bold';
             row.appendChild(createCell(score != null ? Math.round(score) : '-', cellClasses));
         });
 
-        // إذا كان الطالب "مُكمّل"، لا تعرض المجموع
-        const totalScoreDisplay = student.category === 'مُكمّل' ? '-' : (student.totalScore != null ? Math.round(student.totalScore) : '-');
+        // عرض المجموع لجميع الطلاب بما فيهم "مُكمّل"
+        const totalScoreDisplay = student.totalScore != null ? Math.round(student.totalScore) : '-';
         row.appendChild(createCell(totalScoreDisplay, 'px-2 py-2 font-bold text-blue-600'));
         
         if (!hidePercentageColumn) {
-            // Use a specific cell for percentage to handle the format correctly
             const percentageCell = document.createElement('td');
-            percentageCell.className = 'px-2 py-2 font-bold';
-            // إذا كان الطالب "مُكمّل"، اعرض كلمة "مُكمّل" بدلاً من النسبة
-            percentageCell.textContent = student.category === 'مُكمّل' ? 'مُكمّل' : formatPercentage(student.percent);
+            let percentageClasses = 'px-2 py-2 font-bold';
+            // إذا كان الطالب "مُكمّل"، قم بتمييز النسبة بلون مختلف
+            if (student.category === 'مُكمّل') {
+                percentageClasses += ' text-orange-600'; // تمييز النسبة باللون البرتقالي
+            }
+            percentageCell.className = percentageClasses;
+            percentageCell.textContent = formatPercentage(student.percent);
             row.appendChild(percentageCell);
         }
         
@@ -1250,7 +1328,23 @@ function updateStudentsTable(students) {
 
 function updateTableHeader(columnsToShow, hidePercentageColumn, showTimeColumn) {
     const thead = document.querySelector('table thead');
-    if (!thead) return;
+    const tableContainer = document.querySelector('.overflow-x-auto');
+    if (!thead || !tableContainer) return;
+
+    // Remove any existing instructions to prevent duplication
+    const existingInstructions = tableContainer.previousElementSibling;
+    if (existingInstructions && existingInstructions.id === 'tableInstructions') {
+        existingInstructions.remove();
+    }
+
+    // Create and insert instructions element before the table's parent div
+    const tableInstructions = `
+        <div id="tableInstructions" class="mb-2 text-sm text-slate-600">
+            <span class="font-bold text-red-500">الخلايا المظللة بالأحمر:</span> تشير إلى الطلاب الذين حصلوا على أقل من نصف الدرجة في المادة.
+            <span class="font-bold text-slate-700">الخلايا المظللة بالأسود:</span> تشير إلى أن الطالب تغيب عن المادة أو حصل على صفر.
+        </div>
+    `;
+    tableContainer.insertAdjacentHTML('beforebegin', tableInstructions);
 
     const baseHeaders = ['الترتيب', 'اسم الطالب', 'الصف', 'القسم'];
     const dynamicSubjectHeaders = columnsToShow.map(key => subjectLabels[key]);
@@ -1351,9 +1445,25 @@ const initializeMultiSelectDropdown = (id, staticOptions = null) => {
         updateFilterDisplay(id, ['الكل']);
     };
 
+    const setSelected = (selectedValues) => {
+        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = selectedValues.includes(cb.value);
+        });
+        // تأكد من أن مربع "الكل" غير محدد إذا تم تحديد عناصر أخرى
+        if (selectedValues.length > 1 && selectedValues.includes('الكل')) {
+            const allCheckbox = dropdown.querySelector('input[value="الكل"]');
+            if (allCheckbox) allCheckbox.checked = false;
+            updateFilterDisplay(id, selectedValues.filter(v => v !== 'الكل'));
+        } else {
+            updateFilterDisplay(id, selectedValues);
+        }
+    };
+
+
     // Initial population for static categories
     if (id === 'categoryFilter') {
-        populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'الغياب']);
+        populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'غياب']);
     } else if (staticOptions) {
         populateOptions(staticOptions);
     }
@@ -1379,11 +1489,17 @@ const initializeMultiSelectDropdown = (id, staticOptions = null) => {
                 if (allCheckbox) allCheckbox.checked = true;
             }
             updateFilterDisplay(id, getSelectedFilterValues(id));
+
+            // إذا كان هذا هو فلتر الصف، قم بتحديث خيارات المواد
+            if (id === 'gradeFilter') {
+                updateSubjectFilterOptions(getSelectedFilterValues('gradeFilter'));
+            }
+
             updateDashboard();
         }
     });
 
-    return { populateOptions, reset, dropdown }; // Return populateOptions, reset, and dropdown element
+    return { populateOptions, reset, setSelected, dropdown }; // Return populateOptions, reset, and dropdown element
 };
 
 let gradeFilterDropdown, sectionFilterDropdown, divisionFilterDropdown, categoryFilterDropdown, subjectFilterDropdown, timeFilterDropdown;
@@ -1508,6 +1624,78 @@ function setupEventListeners() {
 
     document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 }
+function setupIntersectionObserver() {
+    const filtersContainer = document.getElementById('filtersContainer');
+    const filtersSection = document.getElementById('filtersSection');
+    const floatingFilterBtn = document.getElementById('floatingFilterBtn');
+
+    if (!filtersContainer || !filtersSection || !floatingFilterBtn) return;
+
+    // State to track if the floating filters are open
+    let isFloatingFiltersOpen = false;
+
+    const observer = new IntersectionObserver(
+        (entries) => {
+            const entry = entries[0];
+             if (!entry.isIntersecting) {
+                 // Scrolled past the original filter container
+                 floatingFilterBtn.classList.add('visible'); // Use 'visible' class for smooth transition
+                 filtersSection.classList.remove('sticky', 'top-4', 'z-10'); // Remove sticky positioning
+ 
+                 if (!isFloatingFiltersOpen) {
+                     filtersSection.classList.add('filters-collapsing'); // Add class to trigger collapse animation
+                 }
+             } else {
+                 // Scrolled back to the top
+                 floatingFilterBtn.classList.remove('visible'); // Hide the button smoothly
+                 filtersSection.classList.add('sticky', 'top-4', 'z-10'); // Restore sticky positioning
+                 filtersSection.classList.remove('filters-collapsing', 'filters-floating'); // Ensure it's visible and not floating
+                 isFloatingFiltersOpen = false; // Reset state
+             }
+        },
+        { rootMargin: "-20px 0px 0px 0px", threshold: 0 } // Trigger when it's 20px from the top
+    );
+
+    observer.observe(filtersContainer);
+
+    floatingFilterBtn.addEventListener('click', () => {
+        isFloatingFiltersOpen = !isFloatingFiltersOpen; // Toggle state
+        if (isFloatingFiltersOpen) {
+            filtersSection.classList.remove('filters-collapsing');
+            filtersSection.classList.add('filters-floating');
+        } else {
+            filtersSection.classList.add('filters-collapsing');
+            filtersSection.classList.remove('filters-floating');
+        }
+    });
+}
+
+function calculateApprovedSubjectsByGrade(students) {
+    approvedSubjectsByGrade = {}; // Reset
+    if (!globalMaxScore) return; // Ensure max score is set
+
+    const studentsByGrade = {};
+    students.forEach(student => {
+        if (!studentsByGrade[student.grade]) {
+            studentsByGrade[student.grade] = [];
+        }
+        studentsByGrade[student.grade].push(student);
+    });
+
+    for (const grade in studentsByGrade) {
+        const approvedSubjectsForThisGrade = new Set(); // Use a Set for unique subject keys
+        const studentsInGrade = studentsByGrade[grade];
+
+        studentsInGrade.forEach(student => {
+            for (const subjectKey in student.scores) {
+                if (subjectKey !== 'behavior' && student.scores[subjectKey] >= (globalMaxScore / 2)) {
+                    approvedSubjectsForThisGrade.add(subjectKey);
+                }
+            }
+        });
+        approvedSubjectsByGrade[grade] = Array.from(approvedSubjectsForThisGrade);
+    }
+}
 
 function resetFilters() {
     document.getElementById('levelFilter').value = 'الكل';
@@ -1538,35 +1726,49 @@ function runAnalysis() {
 
     // Use setTimeout to allow the UI to update and show the loader before heavy processing
     try {
-        // Recalculate overall percentage for all students based on the new max score
+        // First, calculate the approved subjects for each grade based on the entire dataset.
+        calculateApprovedSubjectsByGrade(allStudentsData); // This function is now defined before runAnalysis.
+
+        // Now, recalculate student metrics based on the approved subjects
         allStudentsData.forEach(student => {
             const halfMaxScore = globalMaxScore / 2;
             let hasFailingSubject = false;
+            let absentInAtLeastOneApprovedSubject = false;
+            let absentSubjectsCount = 0;
 
-            // التحقق من وجود مواد إكمال
-            for (const key of subjectKeys) {
-                const score = student.scores[key] ?? 0;
-                if (score > 0 && score < halfMaxScore) {
-                    hasFailingSubject = true;
-                    break;
-                }
+            const approvedSubjectsForGrade = approvedSubjectsByGrade[student.grade] || [];
+            const numApprovedSubjects = approvedSubjectsForGrade.length;
+            let totalScoreInApprovedSubjects = 0;
+
+            if (numApprovedSubjects > 0) {
+                approvedSubjectsForGrade.forEach(key => {
+                    const score = student.scores[key] ?? 0;
+                    totalScoreInApprovedSubjects += score;
+                    if (score === 0) {
+                        absentInAtLeastOneApprovedSubject = true;
+                        absentSubjectsCount++;
+                    } else if (score > 0 && score < halfMaxScore) {
+                        hasFailingSubject = true;
+                    }
+                });
             }
 
-            const subjectPercentages = subjectKeys.map(key => getScoreAsPercentage(student.scores[key] ?? 0));
-            const validPercentages = subjectPercentages.filter(p => p > 0);
-            const averagePercentage = validPercentages.length > 0
-                ? validPercentages.reduce((a, b) => a + b, 0) / validPercentages.length
+            // Correctly calculate the percentage based on the sum of scores ONLY in approved subjects.
+            const newPercentage = (numApprovedSubjects > 0 && globalMaxScore > 0) 
+                ? (totalScoreInApprovedSubjects / (numApprovedSubjects * globalMaxScore)) * 100 
                 : 0;
-            student.overall = averagePercentage;
-            student.percent = averagePercentage; // Store the calculated percentage
+            student.overall = newPercentage;
+            student.percent = newPercentage;
 
-            // تحديد التقدير بناءً على الآلية الجديدة
-            if (hasFailingSubject && averagePercentage >= 50) {
-                // إذا كان لديه مواد إكمال ونسبته 50% أو أكثر، يكون "مُكمّل"
+            // Determine category based on the final requested logic
+            const isAbsentInAllApprovedSubjects = (numApprovedSubjects > 0 && absentSubjectsCount === numApprovedSubjects);
+            if (isAbsentInAllApprovedSubjects) { //NOSONAR
+                student.category = 'غياب';
+            } else if ((hasFailingSubject || absentInAtLeastOneApprovedSubject) && newPercentage >= 50) {
                 student.category = 'مُكمّل';
             } else {
-                // في الحالات الأخرى (بما في ذلك من لديه مواد إكمال ونسبته أقل من 50%)، يتم استخدام التقدير العادي
-                student.category = getGradeCategory(averagePercentage);
+                // Otherwise, use the standard grade category based on the new percentage
+                student.category = getGradeCategory(newPercentage);
             }
         });
 
@@ -1576,6 +1778,7 @@ function runAnalysis() {
         document.getElementById('filtersSection').classList.remove('hidden');
         document.getElementById('dashboardContent').classList.remove('hidden');
         updateFilterOptions();
+        setupIntersectionObserver(); // Initialize the observer AFTER analysis
         // Pass a callback to hide the loader only after the dashboard has finished updating.
         updateDashboard(() => document.getElementById('loadingOverlay').classList.add('hidden'));
     } catch (error) {
@@ -1585,6 +1788,63 @@ function runAnalysis() {
         document.getElementById('loadingOverlay').classList.add('hidden');
     }
 }
+
+function updateApprovedSubjectsByClassTable(students) {
+    const tableContainer = document.getElementById('approvedSubjectsByClassTableContainer');
+    if (!tableContainer) return;
+
+    // Group students by grade
+    const studentsByGrade = {};
+    students.forEach(student => {
+        if (!studentsByGrade[student.grade]) {
+            studentsByGrade[student.grade] = [];
+        }
+        studentsByGrade[student.grade].push(student);
+    });
+
+    let tableHTML = '<table class="w-full text-sm text-right text-slate-500">';
+    tableHTML += '<thead class="text-xs text-slate-700 uppercase bg-slate-100"><tr>';
+    tableHTML += '<th scope="col" class="px-2 py-2 whitespace-nowrap">الصف الدراسي</th>';
+    tableHTML += '<th scope="col" class="px-2 py-2 whitespace-nowrap">عدد المواد المعتمدة</th>';
+    tableHTML += '<th scope="col" class="px-2 py-2 whitespace-nowrap">المواد المعتمدة</th>';
+    tableHTML += '</tr></thead>';
+    tableHTML += '<tbody>';
+
+    for (const grade in studentsByGrade) {
+        const studentsInGrade = studentsByGrade[grade];
+        const approvedSubjects = {};
+
+        studentsInGrade.forEach(student => {
+            for (const subject in student.scores) {
+                if (subject !== 'behavior' && student.scores[subject] >= (globalMaxScore / 2)) {
+                    approvedSubjects[subject] = subjectLabels[subject] || subject;
+                }
+            }
+        });
+
+        const approvedSubjectsCount = Object.keys(approvedSubjects).length;
+        const approvedSubjectsList = Object.values(approvedSubjects).join(', ') || 'لا توجد مواد معتمدة';
+
+        tableHTML += `<tr class="bg-white border-b hover:bg-slate-50">`;
+        tableHTML += `<td class="px-2 py-2 font-medium text-slate-900 whitespace-nowrap">${grade}</td>`;
+        tableHTML += `<td class="px-2 py-2">${approvedSubjectsCount}</td>`;
+        tableHTML += `<td class="px-2 py-2">${approvedSubjectsList}</td>`;
+        tableHTML += `</tr>`;
+    }
+
+    tableHTML += '</tbody></table>';
+
+    if (Object.keys(studentsByGrade).length === 0) {
+        tableHTML = '<p class="text-center py-4 text-slate-500">لا توجد بيانات لعرض المواد المعتمدة حسب الصف.</p>';
+    }
+
+    tableContainer.innerHTML = tableHTML;
+}
+
+
+
+
+
 
 const exportChart = (chartId, filename) => {
     const link = Object.assign(document.createElement('a'), {
@@ -1661,7 +1921,7 @@ function processParsedData(data, headers) {
         const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'الشعبة', 'سلوك', 'النسبة', 'نوع التحليل']; // Added 'الشعبة'
         
         subjectLabels = {};
-        subjectKeys = [];
+        subjectKeys = []; //NOSONAR
         fileHeaders.forEach(header => {
             if (!fixedHeaders.includes(header)) {
                 const cleanHeader = header;
@@ -1699,10 +1959,11 @@ function processParsedData(data, headers) {
         // Determine if 'نوع التحليل' column should be shown
         shouldShowTimeColumn = allStudentsData.some(student => student.time !== null && student.time !== undefined && student.time !== '');
 
-        dynamicSubjectColors = generateColors(subjectKeys.length);
+        let dynamicSubjectColors = generateColors(subjectKeys.length); // Declare with let
+        updateApprovedSubjectsByClassTable(allStudentsData);
         
         // Enable the next step
-        document.getElementById('maxScoreInput').disabled = false;
+        // maxScoreInput is now enabled by default in index.html, no need to re-enable here.
         displayStatusMessage(statusMsg, 'تم رفع الملف. أدخل الدرجة النهائية ثم اضغط "تحليل النتائج".', 'teal', 8000);
 
     } catch (err) {
@@ -1743,6 +2004,7 @@ async function generatePdfReport() {
 
         // --- Styling ---
         const primaryColor = '#0d9488'; // teal-600
+        const primaryColorRgb = [13, 148, 136]; // RGB for teal-600
         const headerColor = '#1e293b';  // slate-800
         const textColor = '#334155';    // slate-700
         const valueColor = '#2563eb';   // blue-600 for stat values
@@ -1993,6 +2255,8 @@ async function generatePdfReport() {
         // --- Section 3: Data Table ---
         if (includeTable) {
             checkPageBreak(10 + 40); // Check for title height + table header height
+            
+            // 1. Add the main title for the table section
             doc.setTextColor(primaryColor);
             doc.setFontSize(18);
             doc.setFont('Amiri', 'bold');
@@ -2000,65 +2264,222 @@ async function generatePdfReport() {
             doc.setFont('Amiri', 'normal');
             yPos += 5;
 
-            // Get headers and body, then reverse them for RTL layout in the PDF
-            const head = [Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent).reverse()];
-            const body = Array.from(document.querySelectorAll('table tbody tr')).map(tr => 
-                Array.from(tr.querySelectorAll('td')).map(td => td.textContent).reverse()
-            );
+            // // 2. Add the table instructions from the HTML table
+            // const tableInstructionsDiv = document.getElementById('tableInstructions');
+            // if (tableInstructionsDiv) {
+            //     const instructionsText = tableInstructionsDiv.textContent.trim();
+            //     if (instructionsText) {
+            //         checkPageBreak(20); // Estimate height for instructions
+            //         doc.setTextColor(textColor);
+            //         doc.setFontSize(10);
+            //         const instructionLines = doc.splitTextToSize(instructionsText, pageWidth - (margin * 2));
+            //         doc.text(instructionLines, pageWidth - margin, yPos, { align: 'right', lineHeightFactor: 1.2 });
+            //         yPos += (instructionLines.length * 4) + 5; // Adjust yPos based on number of lines
+            //     }
+            // }
 
-            // Define column styles for proper RTL alignment after reversing
-            const columnStyles = {};
-            const studentNameIndex = head[0].indexOf('اسم الطالب');
-            if (studentNameIndex > -1) {
-                columnStyles[studentNameIndex] = { halign: 'right' };
+            // Prepare headers in logical RTL order (as defined in updateTableHeader)
+            const baseHeaders = ['الترتيب', 'اسم الطالب', 'الصف', 'القسم']; // These are the first columns
+
+            // Get current filter selections
+            const selectedGrades = getSelectedFilterValues('gradeFilter');
+            const selectedSubjects = getSelectedFilterValues('subjectFilter');
+            const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
+
+            let pdfSubjectKeysToShow = [];
+
+            // Logic to determine which subject keys to show in the PDF table
+            if (selectedGrades.length === 1 && selectedGrades[0] !== 'الكل' && selectedSubjects.includes('الكل')) {
+                // If a single grade is selected AND 'الكل' is selected in subjects,
+                // show only approved subjects for that grade.
+                const selectedGrade = selectedGrades[0];
+                pdfSubjectKeysToShow = approvedSubjectsByGrade[selectedGrade] || [];
+            } else if (selectedSubjects.includes('الكل')) {
+                // If 'الكل' is selected in subjects (and not a single grade with 'الكل' subjects),
+                // show all subjects that are not completely empty across all students in the current filtered view.
+                pdfSubjectKeysToShow = subjectKeys.filter(key =>
+                    key !== 'time' &&
+                    window.filteredStudents.some(student => (student.scores[key] ?? null) !== null)
+                );
+            } else {
+                // When specific subjects are filtered, show exactly those subjects.
+                pdfSubjectKeysToShow = selectedSubjects.map(label => subjectKeyMap[label]).filter(Boolean);
             }
-            const categoryColumnIndex = head[0].indexOf('التقدير');
+
+            const dynamicSubjectHeaders = pdfSubjectKeysToShow.map(key => subjectLabels[key]);
+
+            let endHeaders = ['المجموع', 'التقدير'];
+            const subjectFilterValues = getSelectedFilterValues('subjectFilter');
+            const hidePercentageColumn = subjectFilterValues.length > 0 && !subjectFilterValues.includes('الكل');
+            if (!hidePercentageColumn) {
+                endHeaders.splice(1, 0, 'النسبة');
+            }
+            if (shouldShowTimeColumn) {
+                endHeaders.splice(endHeaders.length - 1, 0, 'نوع التحليل');
+            }
+            const logicalHeaders = [...baseHeaders, ...dynamicSubjectHeaders, ...endHeaders]; 
+            const head = [logicalHeaders.slice().reverse()]; // Reverse headers for RTL
+
+            // Prepare body data in logical RTL order
+            const pdfBody = window.filteredStudents.map((student, idx) => {
+                const rowData = [];
+                rowData.push(idx + 1); // الترتيب
+                rowData.push(student.name); // اسم الطالب
+                rowData.push(student.grade); // الصف
+                rowData.push(student.section); // القسم
+
+                dynamicSubjectHeaders.forEach(subjectLabel => {
+                    const subjectKey = Object.keys(subjectLabels).find(key => subjectLabels[key] === subjectLabel);
+                    const score = student.scores[subjectKey];
+                    rowData.push(score != null ? score : '-'); // Push the raw score for didParseCell to evaluate
+                });
+
+                rowData.push(Math.round(student.totalScore)); // المجموع
+                if (!hidePercentageColumn) {
+                    rowData.push(formatPercentage(student.percent)); // النسبة
+                }
+                if (shouldShowTimeColumn) {
+                    rowData.push(student.time || '-'); // نوع التحليل
+                }
+                rowData.push(student.category); // التقدير
+                return rowData.slice().reverse(); // Reverse data for RTL
+            });
+
+            // Define column styles for proper alignment
+            const columnStyles = {}; 
+            const studentNameColIndex = logicalHeaders.indexOf('اسم الطالب');
+            const categoryColIndex = logicalHeaders.indexOf('التقدير');
+            const percentageColIndex = logicalHeaders.indexOf('النسبة');
+            const totalScoreColIndex = logicalHeaders.indexOf('المجموع');
+            const rankColIndex = logicalHeaders.indexOf('الترتيب');
+            const gradeColIndex = logicalHeaders.indexOf('الصف');
+            const sectionColIndex = logicalHeaders.indexOf('القسم');
+            const timeColIndex = logicalHeaders.indexOf('نوع التحليل');
+
+            const reversedLogicalHeaders = logicalHeaders.slice().reverse();
+
+            // Set specific alignments for RTL consistency
+            if (studentNameColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('اسم الطالب')] = { halign: 'right' };
+            if (gradeColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('الصف')] = { halign: 'right' };
+            if (sectionColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('القسم')] = { halign: 'right' };
+            if (timeColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('نوع التحليل')] = { halign: 'right' };
+            if (categoryColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('التقدير')] = { halign: 'right' };
+
+            // Keep numerical columns centered for readability
+            if (rankColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('الترتيب')] = { halign: 'center' };
+            if (totalScoreColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('المجموع')] = { halign: 'center' };
+            if (percentageColIndex !== -1) columnStyles[reversedLogicalHeaders.indexOf('النسبة')] = { halign: 'center' };
+
+            // Set subject score columns to center alignment (as they are numbers)
+            dynamicSubjectHeaders.forEach(subjectLabel => {
+                const reversedIndex = reversedLogicalHeaders.indexOf(subjectLabel);
+                if (reversedIndex !== -1) columnStyles[reversedIndex] = { halign: 'center' };
+            });
+
+            // Get the list of subject header texts (for didParseCell logic)
+            const subjectHeaderTexts = dynamicSubjectHeaders;
 
             doc.autoTable({
                 startY: yPos,
                 head: head,
-                body: body,
-                theme: 'grid',
+                body: pdfBody,
+                theme: 'grid', // Changed from 'striped' to 'grid' for full borders
+                rtl: true, // Enable RTL support for the table
                 styles: {
                     font: 'Amiri',
-                    halign: 'center', // Default alignment for all cells (good for numbers)
+                    halign: 'right', // Default alignment for all cells (Arabic text)
                     cellPadding: 2,
-                    fontSize: 9,
-                },
+                    fontSize: 8, // تصغير حجم الخط لاستيعاب النصوص الطويلة
+                    // overflow: 'linebreak', // تم التعطيل بناءً على الطلب
+                },        
                 headStyles: {
-                    fillColor: primaryColor,
+                    fillColor: primaryColorRgb, // Use the project's primary color in RGB format.
                     textColor: '#ffffff',
                     font: 'Amiri',
                     fontStyle: 'bold',
-                    halign: 'center' // Center headers
+                    halign: 'right', // Align headers to the right for RTL consistency
+                    valign: 'middle', // Vertically align text in the middle
+                    lineColor: '#475569', // Re-add subtle line color for header borders.
+                    lineWidth: 0.2 // Re-add thin border for header cells.
                 },
-                columnStyles: columnStyles, // Apply specific right-alignment for text columns like student name
+                columnStyles: columnStyles, // Apply specific alignments
                 didDrawPage: (data) => { yPos = data.cursor.y; },
                 didParseCell: (data) => {
-                    if (data.section === 'body' && data.column.index === categoryColumnIndex) {
-                        const category = data.cell.raw;
-                        let bg, text;
-                        switch (category) {
+                    // This hook is called for every cell. We must only apply styles to body cells here.
+                    if (data.section !== 'body') {
+                        return; // Do not apply any logic to header or footer cells.
+                    }
+
+                    // Get the student object for the current row
+                    const student = window.filteredStudents[data.row.index];
+                    if (!student) return; // Should not happen if data is consistent
+
+                    // Default cell styles
+                    data.cell.styles.fillColor = '#ffffff';
+                    data.cell.styles.textColor = '#334155';
+                    data.cell.styles.fontStyle = 'normal'; // Reset font style for each cell
+
+                    // 1. Apply full-row background color for 'مُكمّل' and 'غياب' students
+                    if (student.category === 'مُكمّل') {
+                        // Apply a light orange background to the entire row
+                        data.cell.styles.fillColor = '#fff7ed'; // orange-50 for the whole row
+                        data.cell.styles.textColor = '#7c2d12'; // orange-900
+                    } else if (student.category === 'غياب') {
+                        // Apply a light slate background to the entire row
+                        data.cell.styles.fillColor = '#f1f5f9'; // slate-100
+                        data.cell.styles.textColor = '#334155'; // slate-700
+                    }
+
+                    // 2. Apply specific styling for the 'التقدير' column (overrides row style)
+                    if (data.column.index === reversedLogicalHeaders.indexOf('التقدير')) {
+                        switch (student.category) {
                             case 'ممتاز':
-                                bg = '#dcfce7'; text = '#166534'; break; // green-100, green-800
+                                data.cell.styles.fillColor = '#dcfce7'; data.cell.styles.textColor = '#166534'; data.cell.styles.fontStyle = 'bold'; break; // green-100, green-800
                             case 'جيد جداً':
-                                bg = '#dbeafe'; text = '#312e81'; break; // blue-100, indigo-900
+                                data.cell.styles.fillColor = '#dbeafe'; data.cell.styles.textColor = '#312e81'; data.cell.styles.fontStyle = 'bold'; break; // blue-100, indigo-900
                             case 'جيد':
-                                bg = '#fef3c7'; text = '#854d0e'; break; // amber-100, amber-800
+                                data.cell.styles.fillColor = '#fef3c7'; data.cell.styles.textColor = '#854d0e'; data.cell.styles.fontStyle = 'bold'; break; // amber-100, amber-800
                             case 'مقبول':
-                                bg = '#f3e8ff'; text = '#581c87'; break; // purple-100, purple-900
+                                data.cell.styles.fillColor = '#f3e8ff'; data.cell.styles.textColor = '#581c87'; data.cell.styles.fontStyle = 'bold'; break; // purple-100, purple-900
                             case 'ضعيف':
-                                bg = '#fee2e2'; text = '#991b1b'; break; // red-100, red-800
-                            case 'الغياب':
-                                bg = '#e2e8f0'; text = '#1e293b'; break; // slate-200, slate-800
+                                data.cell.styles.fillColor = '#fee2e2'; data.cell.styles.textColor = '#991b1b'; data.cell.styles.fontStyle = 'bold'; break; // red-100, red-800
+                            case 'مُكمّل':
+                                data.cell.styles.fillColor = '#ea580c'; data.cell.styles.textColor = '#ffffff'; data.cell.styles.fontStyle = 'bold'; break; // orange-600, white text
+                            case 'غياب':
+                                data.cell.styles.fillColor = '#475569'; data.cell.styles.textColor = '#ffffff'; data.cell.styles.fontStyle = 'bold'; break; // slate-600, white text
                             default:
-                                bg = '#ffffff'; text = '#334155'; break; // white, slate-700
+                                data.cell.styles.fillColor = '#ffffff'; data.cell.styles.textColor = '#334155'; break; // white, slate-700
                         }
-                        data.cell.styles.fillColor = bg;
-                        data.cell.styles.textColor = text;
+                    }
+                    // 3. Apply specific highlighting for individual subject scores (overrides row style)
+                    else if (data.column.header && subjectHeaderTexts.includes(data.column.header.text)) { // Check if it's a subject column and header exists
+                        const subjectKey = Object.keys(subjectLabels).find(key => subjectLabels[key] === data.column.header.text);
+                        const score = Number(data.cell.raw); // Ensure score is a number for comparison
+                        const halfMaxScore = globalMaxScore / 2;
+                        const isApproved = (approvedSubjectsByGrade[student.grade] || []).includes(subjectKey);
+
+                        if (!isNaN(score)) { // Only apply if it's a valid number score
+                            if (score === 0 && isApproved) { // Absent or zero in an approved subject
+                                data.cell.styles.fillColor = '#1e293b'; // Dark slate (black-ish)
+                                data.cell.styles.textColor = '#ffffff'; // White text
+                                data.cell.text = 'غائب'; // Display 'غائب' instead of '0'
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (score > 0 && score < halfMaxScore) { // Less than half score
+                                data.cell.styles.fillColor = '#fee2e2'; // Red-ish background
+                                data.cell.styles.textColor = '#991b1b'; // Dark red text
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                    }
+                    // 4. Make percentage bold for 'مُكمّل' or 'غياب'
+                    else if (data.column.index === reversedLogicalHeaders.indexOf('النسبة')) { //NOSONAR
+                        // The full-row styling at the beginning handles the background. We just make the text bold.
+                        if (student.category === 'مُكمّل' || student.category === 'غياب') {
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 }
-            });
+            });        
         }
 
         // --- Footer ---
@@ -2109,8 +2530,8 @@ function updateFilterOptions() {
     sectionFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.section).filter(Boolean))].sort());
     gradeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.grade).filter(Boolean))].sort());
     divisionFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.division).filter(Boolean))].sort()); // NEW
-    subjectFilterDropdown.populateOptions(Object.values(subjectLabels).filter(label => label !== 'الغياب').sort());
-    categoryFilterDropdown.populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'الغياب']); // categoryFilter is static, re-populate to ensure order
+    subjectFilterDropdown.populateOptions(Object.values(subjectLabels).filter(label => label !== 'غياب').sort());
+    categoryFilterDropdown.populateOptions(['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف', 'مُكمّل', 'غياب']); // categoryFilter is static, re-populate to ensure order
     timeFilterDropdown.populateOptions([...new Set(allStudentsData.map(s => s.time).filter(Boolean))].sort());
 }
 
@@ -2136,4 +2557,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return confirmationMessage; // لـ Firefox ومتصفحات أخرى
         }
     });
+
+    // Add a global error handler for better debugging
+    window.onerror = function(message, source, lineno, colno, error) {
+        console.error("Uncaught Error:", { message, source, lineno, colno, error });
+        // Optionally display a user-friendly message
+        // alert("حدث خطأ غير متوقع في التطبيق. يرجى مراجعة وحدة التحكم للمزيد من التفاصيل.");
+        return true; // Prevent default error handling
+    };
 });
