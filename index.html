@@ -4,24 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduDashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <!-- SheetJS (js-xlsx) for Excel export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <!-- PDF Generation Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Tajawal font for PDF Arabic support -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Cairo font for UI -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/png" href="./img/favicon1.png">
+
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <script src="./libs/tailwindcss.min.js"></script>
+    <!-- <script src="./libs/tailwind-browser.js"></script> -->
+    <script src="./libs/chart.umd.min.js"></script>
+    <script src="./libs/chartjs-plugin-datalabels.min.js"></script>
+    <script src="./libs/papaparse.min.js"></script>
+    <script src="./libs/xlsx.full.min.js"></script>
+    <script src="./libs/jspdf.umd.min.js"></script>
+    <script src="./libs/html2canvas.min.js"></script>
+    <script src="./libs/jspdf.plugin.autotable.min.js"></script>
+
+
+    
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+
 </head>
+
 <body class="bg-slate-50 text-slate-800">
 
     <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-[101]">
@@ -699,115 +702,6 @@
 
     </div>
 
-
-
-    <!-- Google Analytics GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5HBQNQSE0T"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-5HBQNQSE0T'); // تفعيل تتبع الصفحات تلقائيًا
-</script>
-
-<!-- Vercel Analytics -->
-<script defer src="/_vercel/insights/script.js"></script>
-
-<!-- أحداث مخصصة -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-
-  // دالة عامة لإرسال الأحداث إلى GA4
-  function trackEvent(eventName, eventParams = {}) {
-    gtag('event', eventName, eventParams);
-    console.log(`GA4 Event sent: ${eventName}`, eventParams);
-  }
-
-  // 🔹 تتبع الفلاتر
-  const customFilters = [
-    { buttonId: 'gradeFilterToggle', valueId: 'gradeFilterDisplay', name: 'gradeFilter' },
-    { buttonId: 'sectionFilterToggle', valueId: 'sectionFilterDisplay', name: 'sectionFilter' },
-    { buttonId: 'categoryFilterToggle', valueId: 'categoryFilterDisplay', name: 'categoryFilter' },
-    { buttonId: 'subjectFilterToggle', valueId: 'subjectFilterDisplay', name: 'subjectFilter' },
-    { buttonId: 'timeFilterToggle', valueId: 'timeFilterDisplay', name: 'timeFilter' }
-  ];
-
-  customFilters.forEach(f => {
-    const btn = document.getElementById(f.buttonId);
-    const valEl = document.getElementById(f.valueId);
-    if (btn && valEl) {
-      btn.addEventListener('click', () => {
-        const value = valEl.textContent.trim();
-        trackEvent('filter_change', { filter_name: f.name, filter_value: value });
-      });
-    }
-  });
-
-  // 🔹 تتبع البحث
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', e => {
-      trackEvent('search', { query: e.target.value });
-    });
-  }
-
-  // 🔹 تتبع تصدير البيانات (Excel)
-  const exportBtn = document.getElementById('downloadExcelBtn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      trackEvent('export_data', {
-        format: 'xlsx',
-        rows: typeof getCurrentRowsCount === 'function' ? getCurrentRowsCount() : null
-      });
-    });
-  }
-
-  // 🔹 تتبع تصدير الرسوم البيانية
-  const chartExportButtons = [
-    { id: 'exportSubjectChartBtn', chartName: 'subject_average_chart' },
-    { id: 'exportGradeChartBtn', chartName: 'grade_distribution_chart' },
-    { id: 'exportGradeStudentDistributionChartBtn', chartName: 'grade_student_distribution_chart' },
-    { id: 'exportAverageGradeByClassChartBtn', chartName: 'average_grade_by_class_chart' }
-  ];
-
-  chartExportButtons.forEach(btnInfo => {
-    const btn = document.getElementById(btnInfo.id);
-    if (btn) {
-      btn.addEventListener('click', () => {
-        trackEvent('export_chart', { chart_name: btnInfo.chartName, format: 'png' });
-      });
-    }
-  });
-
-  // 🔹 تتبع رفع الملفات
-  const fileUploadInput = document.getElementById('csvUpload'); // غيّر ID إذا كان مختلف
-  if (fileUploadInput) {
-    fileUploadInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        const file = e.target.files[0];
-        trackEvent('file_upload', {
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type || 'unknown'
-        });
-      }
-    });
-  }
-
-  // 🔹 تتبع فتح نافذة المساعدة
-  const helpModal = document.getElementById('helpModal');
-  if (helpModal) {
-    helpModal.addEventListener('click', () => {
-      trackEvent('help_modal_open', { element_id: 'helpModal' });
-    });
-  }
-
-});
-</script>
-
-
-
-
     <!-- Report Generation Modal -->
     <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[102]">
         <div class="bg-white p-6 rounded-lg max-w-md w-full shadow-lg">
@@ -881,7 +775,18 @@ document.addEventListener('DOMContentLoaded', function () {
     </button>
 
 
+    <!-- Vercel Analytics -->
+    <script defer src="/_vercel/insights/script.js"></script>
+
     <script src="main.js"></script>
+
+      <script>
+     if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("Service Worker registered"))
+      .catch(err => console.error("Service Worker failed:", err));
+     }
+    </script>
 
     <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[100]">
         <div class="bg-white p-6 rounded-lg max-w-lg w-full shadow-lg overflow-y-auto max-h-[80vh]">

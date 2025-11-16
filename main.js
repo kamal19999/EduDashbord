@@ -13,16 +13,16 @@ let subjectKeys = [];   // e.g., ['math', 'science']
 let globalMaxScore = 100; // Will be set by the user
 //الحمد لله، وسبحان الله، لا إله إلا الله والله اكبر 
 const getScoreAsPercentage = (score) => {
-    if (globalMaxScore === 0) return 0; //NOSONAR
+    if (globalMaxScore === 0) return 0;
     return (score / globalMaxScore) * 100;
 };
 // التعديل رقم 740
 const getGradeCategory = (percentage) => {
     if (percentage === 0) return 'الغياب';
     if (percentage >= 90) return 'ممتاز';
-    if (percentage >= 80) return 'جيد جداً'; //NOSONAR
-    if (percentage >= 65) return 'جيد'; //NOSONAR
-    if (percentage >= 50) return 'مقبول'; //NOSONAR
+    if (percentage >= 80) return 'جيد جداً'; 
+    if (percentage >= 65) return 'جيد'; 
+    if (percentage >= 50) return 'مقبول';
     return 'ضعيف';
 };
 
@@ -165,10 +165,10 @@ let currentPercentageFilter = null; // Global variable to store the percentage f
 let debounceTimer;
 function updateDashboard(onCompleteCallback = null) {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { //NOSONAR
+    debounceTimer = setTimeout(() => { 
     const sectionFilterValues = getSelectedFilterValues('sectionFilter'); // القسم
     const gradeFilterValues = getSelectedFilterValues('gradeFilter'); // الصف الدراسي
-    const divisionFilterValues = getSelectedFilterValues('divisionFilter'); // الشعبة - NEW
+    const divisionFilterValues = getSelectedFilterValues('divisionFilter'); // الشعبة  
     const subjectFilterValues = getSelectedFilterValues('subjectFilter'); // المادة الدراسية
     const categoryFilterValues = getSelectedFilterValues('categoryFilter'); // فئة التقدير
     const levelFilter = document.getElementById('levelFilter').value; // المستوى - Single select
@@ -226,7 +226,7 @@ function updateDashboard(onCompleteCallback = null) {
         })();
 
         // إضافة منطق خاص لفئة "مُكمّل"
-        if (categoryFilterValues.includes('مُكمّل')) { //NOSONAR
+        if (categoryFilterValues.includes('مُكمّل')) { 
             // إذا لم يتم تحديد مادة معينة، فإننا نبحث عن الطلاب الذين تم تصنيفهم على أنهم "مُكمّل" بشكل عام
             if (!selectedSubjectKeyForOverall) {
             matchesCategory = matchesCategory || student.category === 'مُكمّل';
@@ -519,7 +519,7 @@ function updateChart(chartInstance, ctx, type, data, options, plugins) {
 }
 
 function updateSubjectAverageChart(students) {
-    const ctx = document.getElementById('subjectAverageChart').getContext('2d');
+    const ctx = document.getElementById('subjectAverageChart').getContext('2d', { willReadFrequently: true });
     const subjectFilterValues = getSelectedFilterValues('subjectFilter');
     const subjectAvgs = calculateSubjectAverages(students);
     const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
@@ -587,7 +587,7 @@ function updateSubjectAverageChart(students) {
 }
 
 function updateGradeDistributionChart(students) {
-    const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
+    const ctx = document.getElementById('gradeDistributionChart').getContext('2d', { willReadFrequently: true });
     const chartContainer = document.querySelector('#gradeDistributionChart').closest('.bg-white');
     const h2 = chartContainer.querySelector('h2');
     const p = chartContainer.querySelector('p');
@@ -760,7 +760,7 @@ function updateGradeDistributionChart(students) {
 }
 
 function updateGradeStudentDistributionChart(students) {
-    const ctx = document.getElementById('gradeStudentDistributionChart').getContext('2d');
+    const ctx = document.getElementById('gradeStudentDistributionChart').getContext('2d', { willReadFrequently: true });
     const gradeCounts = {};
     students.forEach(student => {
         gradeCounts[student.grade] = (gradeCounts[student.grade] || 0) + 1;
@@ -836,7 +836,7 @@ function updateGradeStudentDistributionChart(students) {
 }
 
 function updateAverageGradeByClassChart(students) {
-    const ctx = document.getElementById('averageGradeByClassChart').getContext('2d');
+    const ctx = document.getElementById('averageGradeByClassChart').getContext('2d', { willReadFrequently: true });
     const gradeAverages = {};
     const gradeCounts = {};
 
@@ -903,7 +903,7 @@ function updateAverageGradeByClassChart(students) {
 }
 
 function updateOverallPerformanceComparisonChart(students, timeFilterValues) {
-    const ctx = document.getElementById('overallPerformanceComparisonChart').getContext('2d');
+    const ctx = document.getElementById('overallPerformanceComparisonChart').getContext('2d', { willReadFrequently: true });
 
     const performanceByTime = {};
     let actualTimeLabelsToProcess = [];
@@ -1029,7 +1029,7 @@ function updateOverallPerformanceComparisonChart(students, timeFilterValues) {
 }
 
 function updateSubjectPerformancePerMonthChart(students, timeFilterValues) {
-    const ctx = document.getElementById('subjectPerformancePerMonthChart').getContext('2d');
+    const ctx = document.getElementById('subjectPerformancePerMonthChart').getContext('2d', { willReadFrequently: true });
 
     const dataBySubjectAndTime = {};
     let actualTimeLabelsToProcess = [];
@@ -1128,7 +1128,7 @@ function updateSubjectPerformancePerMonthChart(students, timeFilterValues) {
 }
 
 function updateClassPerformancePerMonthChart(students, timeFilterValues) {
-    const ctx = document.getElementById('classPerformancePerMonthChart').getContext('2d');
+    const ctx = document.getElementById('classPerformancePerMonthChart').getContext('2d', { willReadFrequently: true });
 
     const dataByTimeAndClass = {};
     const allClasses = new Set();
@@ -1350,7 +1350,7 @@ function updateTableHeader(columnsToShow, hidePercentageColumn, showTimeColumn) 
     const dynamicSubjectHeaders = columnsToShow.map(key => subjectLabels[key]);
     
     let endHeaders = ['المجموع', 'التقدير'];
-    if (!hidePercentageColumn) { //NOSONAR
+    if (!hidePercentageColumn) { 
         endHeaders.splice(1, 0, 'النسبة'); // Insert 'النسبة' after 'المجموع'
     }
     if (showTimeColumn) {
@@ -1762,7 +1762,7 @@ function runAnalysis() {
 
             // Determine category based on the final requested logic
             const isAbsentInAllApprovedSubjects = (numApprovedSubjects > 0 && absentSubjectsCount === numApprovedSubjects);
-            if (isAbsentInAllApprovedSubjects) { //NOSONAR
+            if (isAbsentInAllApprovedSubjects) { 
                 student.category = 'غياب';
             } else if ((hasFailingSubject || absentInAtLeastOneApprovedSubject) && newPercentage >= 50) {
                 student.category = 'مُكمّل';
@@ -1921,7 +1921,7 @@ function processParsedData(data, headers) {
         const fixedHeaders = ['اسم الطالب', 'الصف', 'القسم', 'الشعبة', 'سلوك', 'النسبة', 'نوع التحليل']; // Added 'الشعبة'
         
         subjectLabels = {};
-        subjectKeys = []; //NOSONAR
+        subjectKeys = []; 
         fileHeaders.forEach(header => {
             if (!fixedHeaders.includes(header)) {
                 const cleanHeader = header;
@@ -2025,7 +2025,7 @@ async function generatePdfReport() {
             const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf';
             const response = await fetch(fontUrl);
             const fontBlob = await response.blob();
-            amiriFont = await new Promise((resolve, reject) => { //NOSONAR
+            amiriFont = await new Promise((resolve, reject) => { 
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result.split(',')[1]);
                 reader.onerror = reject;
@@ -2036,7 +2036,7 @@ async function generatePdfReport() {
             const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf';
             const response = await fetch(fontUrl);
             const fontBlob = await response.blob();
-            amiriBoldFont = await new Promise((resolve, reject) => { //NOSONAR
+            amiriBoldFont = await new Promise((resolve, reject) => { 
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result.split(',')[1]);
                 reader.onerror = reject;
@@ -2221,7 +2221,7 @@ async function generatePdfReport() {
             for (const chartId of allChartIds) {
                 const chartContainer = document.getElementById(chartId)?.closest('.bg-white');
                 if (chartContainer) {
-                    const canvas = await html2canvas(chartContainer, { scale: 2, backgroundColor: '#ffffff' });
+                    const canvas = await html2canvas(chartContainer, { scale: 1, backgroundColor: '#ffffff', willReadFrequently: true });
                     const imgData = canvas.toDataURL('image/png');
                     
                     const imgWidth = pageWidth - (margin * 4); // Use more width
@@ -2472,8 +2472,8 @@ async function generatePdfReport() {
                         }
                     }
                     // 4. Make percentage bold for 'مُكمّل' or 'غياب'
-                    else if (data.column.index === reversedLogicalHeaders.indexOf('النسبة')) { //NOSONAR
-                        // The full-row styling at the beginning handles the background. We just make the text bold.
+                    else if (data.column.index === reversedLogicalHeaders.indexOf('النسبة')) { 
+                      
                         if (student.category === 'مُكمّل' || student.category === 'غياب') {
                             data.cell.styles.fontStyle = 'bold';
                         }
@@ -2561,8 +2561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add a global error handler for better debugging
     window.onerror = function(message, source, lineno, colno, error) {
         console.error("Uncaught Error:", { message, source, lineno, colno, error });
-        // Optionally display a user-friendly message
-        // alert("حدث خطأ غير متوقع في التطبيق. يرجى مراجعة وحدة التحكم للمزيد من التفاصيل.");
-        return true; // Prevent default error handling
+       
+        return true; 
     };
 });

@@ -1,0 +1,18 @@
+{
+  "name": "EduDashboard",
+  "short_name": "EduDash",
+  "start_url": "./welcome.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14b8a6",
+  "description": "لوحة تعليمية تفاعلية تعمل بدون إنترنت",
+  "icons": [
+    {
+      "src": "./img/favicon1.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    }
+  ],
+  "lang": "ar",
+  "dir": "rtl"
+}
