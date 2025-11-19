@@ -7,9 +7,8 @@
 
     <link rel="icon" type="image/png" href="./img/favicon1.png">
 
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+     <!-- تم بفضل الله تحميل المكتبات والخطوط محالياً -->
     <script src="./libs/tailwindcss.min.js"></script>
-    <!-- <script src="./libs/tailwind-browser.js"></script> -->
     <script src="./libs/chart.umd.min.js"></script>
     <script src="./libs/chartjs-plugin-datalabels.min.js"></script>
     <script src="./libs/papaparse.min.js"></script>
@@ -18,8 +17,7 @@
     <script src="./libs/html2canvas.min.js"></script>
     <script src="./libs/jspdf.plugin.autotable.min.js"></script>
 
-
-    
+       
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
 
@@ -27,6 +25,22 @@
 
 <body class="bg-slate-50 text-slate-800">
 
+     <header class="bg-[#006666] text-white shadow-lg">
+        <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+             <a href="index.html">
+             <img src="./img/favicon1.png" alt="شعار الموقع" style="height:40px; width:auto;">
+             </a>
+
+            <h1 class="text-2xl font-bold">EduDashboard</h1>
+            <button id="helpBtn" class="group flex items-center gap-2 px-3 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm hover:shadow-md hover:bg-white/30 transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white transition-colors">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <span class="text-sm font-medium text-white transition-colors">تعليمات</span>
+            </button>
+        </div>
+        
+    </header>
     <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-[101]">
         <div class="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center gap-6 w-96">
             <div class="flex space-x-2 justify-center items-center">
@@ -38,38 +52,39 @@
         </div>
     </div>
 
-    <button id="helpBtn" class="group absolute top-4 left-4 z-40 flex items-center gap-2 px-3 py-2 bg-white/70 backdrop-blur-sm border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-300">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-teal-500 group-hover:text-teal-600 transition-colors">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-        </svg>
-        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">تعليمات</span>
-    </button>
-
-    <div class="container mx-auto p-4 md:p-8">
-
-        <div class="w-full">
+   
+    
+    <div class="container text-black shadow-lg">
+        <div class="w-full bg-[#EFFFFD] py-3 ">
+    <!-- <div class="container mx-auto p-4 md:p-8">
+        <div class="w-full"> -->
             <header class="text-center mb-4">
-                <h1 class="text-3xl md:text-4xl font-bold text-slate-700">لوحة تفاعلية لتحليل البيانات التعليمية</h1>
+                <h1 class="text-3xl md:text-3xl font-bold text-slate-700">لوحة تفاعلية لتحليل البيانات التعليمية</h1>
                 <p class="text-slate-500 mt-2">تحليل فوري تفاعلي لنتائج الطلاب وأدائهم في مختلف المواد والمراحل الدراسية.</p>
             </header>
         </div>
 
     <div class="flex flex-col items-end gap-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 border border-slate-200" style="max-width: 300px;">
-    <label class="block text-teal-700 mb-1">1. يرجى رفع ملف درجات الطلاب هنا لتحليلها</label>
-    <div class="relative w-full">
-        <input type="file" id="csvUpload" accept=".csv,.xlsx,.xls" class="block text-sm text-slate-500 mb-2 cursor-pointer w-full border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
-        <div id="csvStatusMsg" class="mt-2 w-full text-center text-sm rounded-lg py-2 transition-all duration-300" style="display:none;"></div>
-    <div id="csvTooltip" class="absolute right-0 mt-2 w-80 bg-slate-100 rounded-lg p-3 text-xs text-slate-600 shadow-lg opacity-0 transition-opacity pointer-events-none border border-teal-200" style="white-space:normal;">
-            <span class="font-semibold text-teal-700">ملاحظة مهمة:</span>  يجب أن يكون نوع الملف Excel أو CSV وتكون البيانات نظيفة لا يوجد فيها اخطاء، ويكون لكل عمود عنوان واضح، في أول صف مثل (اسم الطالب، الصف، القسم،اسماء المواد الدراسية ..) حتى تتم عملية التحليل بنجاح..وشكراً<br>
-        </div>
-        </div>
+    <label class="block text-teal-700 mb-1">1. يرجى رفع ملف الدرجات هنا لتحليلها</label>
+    <div id="drop-zone" class="relative w-full border-2 border-dashed border-teal-300 rounded-lg p-6 text-center cursor-pointer hover:border-teal-500 transition-colors">
+        <input type="file" id="csvUpload" accept=".csv,.xlsx,.xls" class="hidden" />
+        <label for="csvUpload" class="cursor-pointer">
+            <svg class="w-12 h-12 mx-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h10a4 4 0 014 4v5a4 4 0 01-4 4H7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11v6m0 0l-3-3m3 3l3-3"></path></svg>
+            <p class="mt-2 text-sm text-slate-500">اسحب وأفلت الملف هنا أو انقر للاختيار</p>
+            <p id="file-name" class="mt-2 text-sm font-semibold text-teal-600"></p>
+        </label>
     </div>
+    <div id="csvStatusMsg" class="mt-2 w-full text-center text-sm rounded-lg py-2 transition-all duration-300" style="display:none;"></div>
+    <div id="csvTooltip" class="absolute right-0 mt-2 w-80 bg-slate-100 rounded-lg p-3 text-xs text-slate-600 shadow-lg opacity-0 transition-opacity pointer-events-none border border-teal-200" style="white-space:normal;">
+            <span class="font-semibold text-teal-700">يجب أن يكون نوع الملف Excel أو CSV،(راجع التعليمات) </span>
+        </div>
+        </div>
 
         <div id="analysisControls" class="bg-white p-4 rounded-xl shadow-md mb-8">
             <div class="flex flex-wrap items-center justify-center gap-4">
                 <div class="flex-1 min-w-[200px]">
                     <label for="maxScoreInput" class="block text-sm font-medium text-slate-600 mb-1">2. أدخل الدرجة النهائية الموحدة</label>
-                    <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                    <input type="number" id="maxScoreInput" min="10" max="100" placeholder="مثال: 60 أو 100" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" disabled>
                     <p id="maxScoreError" class="text-red-500 text-xs mt-1 h-4"></p>
                 </div>
                 <div class="mt-5 flex items-center gap-2">
@@ -388,7 +403,7 @@
 
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">متوسط الأداء حسب المادة</h2>
+                    <h2 id="subjectAverageChartTitle" class="text-xl font-bold text-slate-700 mb-4">متوسط الأداء حسب المادة</h2>
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني متوسط درجات الطلاب في جميع المواد الدراسية. يمكنك استخدامه لتحديد نقاط القوة والضعف العامة في الأداء الأكاديمي.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="subjectAverageChart"></canvas>
@@ -410,7 +425,7 @@
                 </div>
                 
                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">توزيع التقديرات</h2>
+                    <h2 id="gradeDistributionChartTitle" class="text-xl font-bold text-slate-700 mb-4">توزيع التقديرات</h2>
                      <p class="text-sm text-slate-500 mb-4">يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="gradeDistributionChart"></canvas>
@@ -434,7 +449,7 @@
 
                 <!-- New Chart: Student Distribution by Grade -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">توزيع الطلاب حسب الصف الدراسي</h2>
+                    <h2 id="gradeStudentDistributionChartTitle" class="text-xl font-bold text-slate-700 mb-4">توزيع الطلاب حسب الصف الدراسي</h2>
                     <p class="text-sm text-slate-500 mb-4">يوضح هذا المخطط الدائري توزيع الطلاب ونسبتهم المئوية لكل صف دراسي.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="gradeStudentDistributionChart"></canvas>
@@ -458,7 +473,7 @@
 
                 <!-- New Chart: Average Grades by Class -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">متوسط درجات الطلاب حسب الصف</h2>
+                    <h2 id="averageGradeByClassChartTitle" class="text-xl font-bold text-slate-700 mb-4">متوسط درجات الطلاب حسب الصف</h2>
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا المخطط البياني متوسط درجات الطلاب في مختلف الصفوف الدراسية.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="averageGradeByClassChart"></canvas>
@@ -483,7 +498,7 @@
             <!-- New Comparative Charts Section -->
             <section id="comparativeChartsSection" class="hidden grid grid-cols-1 gap-8 mb-8">
                 <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">مقارنة الأداء العام لكل فترة</h2>
+                    <h2 id="overallPerformanceComparisonChartTitle" class="text-xl font-bold text-slate-700 mb-4">مقارنة الأداء العام لكل فترة</h2>
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني متوسط الأداء العام عبر الفترات الزمنية المختارة، مع ارقام وسط كل عمود توضح ترتيب افضل أداء.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="overallPerformanceComparisonChart"></canvas>
@@ -505,7 +520,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">أداء المواد لكل فترة</h2>
+                    <h2 id="subjectPerformancePerMonthChartTitle" class="text-xl font-bold text-slate-700 mb-4">أداء المواد لكل فترة</h2>
                     <p class="text-sm text-slate-500 mb-4">يعرض هذا الرسم البياني أداء كل مادة دراسية في كل فترة، مما يتيح مقارنة أداء المواد عبر الفترات.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="subjectPerformancePerMonthChart"></canvas>
@@ -527,7 +542,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-md full-width-chart-container">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">أداء الصفوف لكل فترة</h2>
+                    <h2 id="classPerformancePerMonthChartTitle" class="text-xl font-bold text-slate-700 mb-4">أداء الصفوف لكل فترة</h2>
                     <p class="text-sm text-slate-500 mb-4">يقارن هذا الرسم البياني أداء الصفوف الدراسية فترة، مما يساعد في تحديد الفصول ذات الأداء المتفوق أو المتدني.</p>
                     <div class="chart-container flex flex-col items-center gap-2">
                         <canvas id="classPerformancePerMonthChart"></canvas>
@@ -566,9 +581,9 @@
                      </button>
                 </div>
                 <p class="text-sm text-slate-500 mb-4">هنا يمكنك الاطلاع على الدرجات التفصيلية لكل طالب بناءً على خيارات التصفية المحددة. استخدم هذا الجدول لمراجعة أداء الطلاب .</p>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto table-container">
                     <table class="w-full text-sm text-right text-slate-500">
-                        <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                        <thead class="text-xs text-slate-700 uppercase sticky-header">
                             <tr>
                                 <th scope="col" class="px-2 py-2 whitespace-nowrap">الترتيب</th>
                                 <th scope="col" class="px-3 py-2 whitespace-nowrap">اسم الطالب</th>
@@ -648,35 +663,6 @@
                         </tbody>
                     </table>
             
-                    <!-- Overall Performance -->
-                    <div class="grid grid-cols-3 gap-4 mb-6 text-center">
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <p class="text-sm text-slate-500">المجموع الكلي</p>
-                            <p id="cardTotalScore" class="font-bold text-xl text-blue-800">-</p>
-                        </div>
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <p class="text-sm text-slate-500">النسبة المئوية</p>
-                            <p id="cardPercentage" class="font-bold text-xl text-green-800">-</p>
-                        </div>
-                        <div class="bg-amber-50 p-3 rounded-lg">
-                            <p class="text-sm text-slate-500">التقدير العام</p>
-                            <p id="cardOverallCategory" class="font-bold text-xl text-amber-800">-</p>
-                        </div>
-                    </div>
-            
-                    <!-- Footer -->
-                    <div class="flex justify-between items-center pt-4 border-t-2 border-slate-200 mt-8 text-xs text-slate-600">
-                        <div class="text-center">
-                            <p class="font-bold mb-4">ختم المدرسة</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="font-bold mb-4">توقيع ولي الأمر</p>
-                        </div>
-                        <p>تاريخ الإصدار: <span id="cardDate"></span></p>
-                    </div>
-                </div>
-            </div>
-
             <!-- Approved Subjects by Class Table - MOVED AND CORRECTED -->
             <section id="approvedSubjectsSection" class="bg-white p-6 rounded-xl shadow-md mt-8 hidden">
                 <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
@@ -821,6 +807,18 @@
 </p>
 
 <button id="closeHelp" class="mt-6 bg-red-100 text-red-600 px-4 py-2 rounded hover:bg-red-200 text-sm">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- File Overwrite Confirmation Modal -->
+    <div id="fileOverwriteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[104]">
+        <div class="bg-white p-6 rounded-lg max-w-sm w-full shadow-lg text-center">
+            <h2 class="text-xl font-bold mb-4 text-slate-700">ملف موجود بالفعل</h2>
+            <p class="text-sm text-slate-600 mb-6">يوجد ملف تم تحميله مسبقًا. هل تريد المتابعة وتحميل ملف جديد؟ سيؤدي هذا إلى إعادة تعيين الحالة الحالية.</p>
+            <div class="flex justify-center gap-4">
+                <button id="confirmReloadBtn" class="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600">إعادة التحميل</button>
+                <button id="cancelOverwriteBtn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200">تراجع</button>
+            </div>
         </div>
     </div>
 </body>

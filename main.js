@@ -162,6 +162,74 @@ function updateSubjectFilterOptions(selectedGrades) {
 }
 
 let currentPercentageFilter = null; // Global variable to store the percentage for filtering
+function updateChartTitles(filters, levelFilter, currentPercentageFilter, filteredStudents) {
+    const buildTitle = (baseTitle, allFilters, levelFilter, currentPercentageFilter) => {
+        const titleParts = [];
+
+        // Add specific filter details to the title
+        const addFilterPart = (filterValues, label) => {
+            if (!filterValues.includes('الكل')) {
+                titleParts.push(`${label}: ${filterValues.join(', ')}`);
+            }
+        };
+
+        addFilterPart(allFilters.sectionFilter.values, 'القسم');
+        addFilterPart(allFilters.gradeFilter.values, 'الصف');
+        addFilterPart(allFilters.divisionFilter.values, 'الشعبة');
+        addFilterPart(allFilters.subjectFilter.values, 'المادة');
+        addFilterPart(allFilters.categoryFilter.values, 'التقدير');
+        addFilterPart(allFilters.timeFilter.values, 'التحليل');
+
+        if (levelFilter === 'top10') titleParts.push('أعلى عشرة');
+        if (levelFilter === 'bottom10') titleParts.push('أدنى عشرة');
+        if (levelFilter === 'greaterThan' && currentPercentageFilter !== null) titleParts.push(`أعلى من ${currentPercentageFilter}%`);
+        if (levelFilter === 'lessThan' && currentPercentageFilter !== null) titleParts.push(`أدنى من ${currentPercentageFilter}%`);
+
+        if (titleParts.length > 0) {
+            return `${baseTitle} (${titleParts.join(' | ')})`;
+        }
+        return baseTitle;
+    };
+
+    const allFilters = {
+        sectionFilter: { values: filters.sectionFilterValues },
+        gradeFilter: { values: filters.gradeFilterValues },
+        divisionFilter: { values: filters.divisionFilterValues },
+        subjectFilter: { values: filters.subjectFilterValues },
+        categoryFilter: { values: filters.categoryFilterValues },
+        timeFilter: { values: filters.timeFilterValues }
+    };
+
+    document.getElementById('studentsTableTitle').textContent = buildTitle('قائمة الطلاب والدرجات', allFilters, levelFilter, currentPercentageFilter);
+    document.getElementById('subjectAverageChartTitle').textContent = buildTitle('متوسط الأداء حسب المادة', allFilters, levelFilter, currentPercentageFilter);
+    
+    // Special title for grade distribution chart
+    const gradeDistTitleElement = document.getElementById('gradeDistributionChartTitle');
+    const pElement = gradeDistTitleElement.nextElementSibling; // Get the <p> tag after the <h2>
+    if (filteredStudents.length === 1) {
+        gradeDistTitleElement.textContent = `توزيع تقديرات مواد الطالب: ${filteredStudents[0].name}`;
+        if(pElement) pElement.textContent = `يقسم هذا المخطط مواد الطالب حسب التقدير. مرر الفأرة على أي قسم لرؤية أسماء المواد.`;
+    } else {
+        const subjectFilterValues = filters.subjectFilterValues;
+        const selectedSubjectKeyForChart = (subjectFilterValues.length === 1 && subjectFilterValues[0] !== 'الكل')
+            ? subjectKeys.find(key => subjectLabels[key] === subjectFilterValues[0])
+            : null;
+        if (selectedSubjectKeyForChart) {
+            gradeDistTitleElement.textContent = `توزيع التقديرات لمادة: ${subjectLabels[selectedSubjectKeyForChart]}`;
+            if(pElement) pElement.textContent = `يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير لمادة ${subjectLabels[selectedSubjectKeyForChart]}.`;
+        } else {
+            gradeDistTitleElement.textContent = buildTitle('توزيع التقديرات', allFilters, levelFilter, currentPercentageFilter);
+            if(pElement) pElement.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
+        }
+    }
+
+    document.getElementById('gradeStudentDistributionChartTitle').textContent = buildTitle('توزيع الطلاب حسب الصف الدراسي', allFilters, levelFilter, currentPercentageFilter);
+    document.getElementById('averageGradeByClassChartTitle').textContent = buildTitle('متوسط درجات الطلاب حسب الصف', allFilters, levelFilter, currentPercentageFilter);
+    document.getElementById('overallPerformanceComparisonChartTitle').textContent = buildTitle('مقارنة الأداء العام لكل فترة', allFilters, levelFilter, currentPercentageFilter);
+    document.getElementById('subjectPerformancePerMonthChartTitle').textContent = buildTitle('أداء المواد لكل فترة', allFilters, levelFilter, currentPercentageFilter);
+    document.getElementById('classPerformancePerMonthChartTitle').textContent = buildTitle('أداء الصفوف لكل فترة', allFilters, levelFilter, currentPercentageFilter);
+}
+
 let debounceTimer;
 function updateDashboard(onCompleteCallback = null) {
     clearTimeout(debounceTimer);
@@ -277,27 +345,14 @@ function updateDashboard(onCompleteCallback = null) {
     // Assign to global filteredStudents
     window.filteredStudents = filteredStudents; // Make it accessible globally for PDF export
 
-    const titleParts = ['كشف الطلاب والدرجات'];
-    const filters = {
-        sectionFilter: { label: 'القسم', values: sectionFilterValues },
-        gradeFilter: { label: 'الصف', values: gradeFilterValues },
-        divisionFilter: { label: 'الشعبة', values: divisionFilterValues }, // NEW
-        subjectFilter: { label: 'المادة', values: subjectFilterValues },
-        categoryFilter: { label: 'التقدير', values: categoryFilterValues },
-        timeFilter: { label: 'نوع التحليل', values: timeFilterValues }
-    };
-
-    for (const filterId in filters) {
-        const filter = filters[filterId];
-        if (!filter.values.includes('الكل')) {
-            titleParts.push(`${filter.label}: ${filter.values.join(', ')}`);
-        }
-    }
-    if (levelFilter === 'top10') titleParts.push('أعلى عشرة');
-    if (levelFilter === 'bottom10') titleParts.push('أدنى عشرة');
-    if (levelFilter === 'greaterThan' && currentPercentageFilter !== null) titleParts.push(`أعلى من ${currentPercentageFilter}%`);
-    if (levelFilter === 'lessThan' && currentPercentageFilter !== null) titleParts.push(`أدنى من ${currentPercentageFilter}%`);
-    document.getElementById('studentsTableTitle').textContent = titleParts.join(' - ');
+    updateChartTitles({
+        sectionFilterValues,
+        gradeFilterValues,
+        divisionFilterValues,
+        subjectFilterValues,
+        categoryFilterValues,
+        timeFilterValues
+    }, levelFilter, currentPercentageFilter, filteredStudents);
 
     updateStatsCards(filteredStudents);
     updateSubjectAverageChart(filteredStudents);
@@ -536,8 +591,8 @@ function updateSubjectAverageChart(students) {
             .filter(Boolean); // Remove nulls for subjects not found or with 0 average
     }
 
-    // Sort subjects by average score in descending order
-    filteredSubjects.sort((a, b) => b[1] - a[1]);
+    // Sort subjects by average score in ascending order
+    filteredSubjects.sort((a, b) => a[1] - b[1]);
 
     const labels = filteredSubjects.map(([key]) => subjectLabels[key] || key);
     const data = filteredSubjects.map(([, avg]) => avg);
@@ -589,15 +644,11 @@ function updateSubjectAverageChart(students) {
 function updateGradeDistributionChart(students) {
     const ctx = document.getElementById('gradeDistributionChart').getContext('2d', { willReadFrequently: true });
     const chartContainer = document.querySelector('#gradeDistributionChart').closest('.bg-white');
-    const h2 = chartContainer.querySelector('h2');
-    const p = chartContainer.querySelector('p');
     let chartData, chartOptions, total;
 
     if (students.length === 1) {
         // Special mode: Group subjects by category for a single student
         const student = students[0];
-        h2.textContent = `توزيع تقديرات مواد الطالب: ${student.name}`;
-        p.textContent = `يقسم هذا المخطط مواد الطالب حسب التقدير. مرر الفأرة على أي قسم لرؤية أسماء المواد.`;
         
         const subjectsByCategory = { 'ممتاز': [], 'جيد جداً': [], 'جيد': [], 'مقبول': [], 'ضعيف': [], 'غياب': [] }; //Kamallllllll
 
@@ -671,34 +722,41 @@ function updateGradeDistributionChart(students) {
             }
         };
     } else {
-        // Default mode: Show overall grade distribution for multiple students
+        // Default mode: Show grade distribution for multiple students
         const subjectFilterValues = getSelectedFilterValues('subjectFilter');
-        const selectedSubjectKeyForChart = (subjectFilterValues.length === 1 && subjectFilterValues[0] !== 'الكل')
-            ? subjectKeys.find(key => subjectLabels[key] === subjectFilterValues[0])
-            : null;
-
-        if (selectedSubjectKeyForChart) {
-            h2.textContent = `توزيع التقديرات لمادة: ${subjectLabels[selectedSubjectKeyForChart]}`;
-            p.textContent = `يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير لمادة ${subjectLabels[selectedSubjectKeyForChart]}.`;
-        } else {
-            h2.textContent = 'توزيع التقديرات';
-            p.textContent = 'يوضح هذا الرسم نسبة الطلاب ضمن كل فئة من فئات التقدير (ممتاز، جيد جداً، إلخ)، مما يعطي لمحة سريعة عن مستوى الأداء العام.';
-        }
+        const subjectKeyMap = Object.fromEntries(Object.entries(subjectLabels).map(([key, label]) => [label, key]));
 
         const gradeCounts = { 'ممتاز': 0, 'جيد جداً': 0, 'جيد': 0, 'مقبول': 0, 'ضعيف': 0, 'مُكمّل': 0, 'غياب': 0 };
 
-        students.forEach(student => {
-            if (selectedSubjectKeyForChart) {
-                // If a specific subject is selected, categorize based on that subject's score.
-                // 'مُكمّل' is not a category for a single subject.
-                const subjectScorePercentage = getScoreAsPercentage(student.scores[selectedSubjectKeyForChart] ?? 0);
-                gradeCounts[getGradeCategory(subjectScorePercentage)]++;
-            } else {
-                // If no specific subject is selected, use the student's overall category.
-                // This includes 'مُكمّل' if the student is categorized as such overall.
+        if (subjectFilterValues.includes('الكل')) {
+            // If 'All' subjects, use the student's overall category.
+            // This includes 'مُكمّل' if the student is categorized as such overall.
+            students.forEach(student => {
                 gradeCounts[student.category]++;
-            }
-        });
+            });
+        } else {
+            // If one or more specific subjects are selected, iterate through their scores.
+            const selectedSubjectKeys = subjectFilterValues.map(label => subjectKeyMap[label]).filter(Boolean);
+            
+            students.forEach(student => {
+                selectedSubjectKeys.forEach(subjectKey => {
+                    // Check if the student has a score for this subject
+                    if (student.scores.hasOwnProperty(subjectKey)) {
+                        const subjectScorePercentage = getScoreAsPercentage(student.scores[subjectKey] ?? 0);
+                        // Note: 'مُكمّل' is not a category for a single subject score, it's an overall status.
+                        // The getGradeCategory function will return 'ضعيف', 'غياب', etc. correctly.
+                        gradeCounts[getGradeCategory(subjectScorePercentage)]++;
+                    }
+                });
+            });
+        }
+
+        // 'مُكمّل' is an overall student status, not a per-subject grade. 
+        // When specific subjects are filtered, this category should not have any counts.
+        // So, we remove it from the chart in this case.
+        if (!subjectFilterValues.includes('الكل')) {
+            delete gradeCounts['مُكمّل'];
+        }
 
         total = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
 
@@ -850,8 +908,8 @@ function updateAverageGradeByClassChart(students) {
         average: (gradeAverages[grade] / gradeCounts[grade])
     }));
 
-    // Sort grades by average score in descending order
-    calculatedGradeAverages.sort((a, b) => b.average - a.average);
+    // Sort grades by average score in ascending order
+    calculatedGradeAverages.sort((a, b) => a.average - b.average);
 
     const labels = calculatedGradeAverages.map(item => item.grade);
     const data = calculatedGradeAverages.map(item => item.average);
@@ -1077,8 +1135,8 @@ function updateSubjectPerformancePerMonthChart(students, timeFilterValues) {
         subjectOverallAverages[subjectKey] = count > 0 ? totalPerformance / count : 0;
     });
 
-    // Sort subjects by their overall average performance in descending order
-    const sortedSubjects = subjectsToDisplay.sort((a, b) => subjectOverallAverages[b] - subjectOverallAverages[a]);
+    // Sort subjects by their overall average performance in ascending order
+    const sortedSubjects = subjectsToDisplay.sort((a, b) => subjectOverallAverages[a] - subjectOverallAverages[b]);
     const sortedTimeLabels = actualTimeLabelsToProcess.sort(); // Use sorted time labels for consistent color mapping
 
     const datasets = sortedTimeLabels.map((time, index) => {
@@ -1171,8 +1229,8 @@ function updateClassPerformancePerMonthChart(students, timeFilterValues) {
         classOverallAverages[grade] = count > 0 ? totalPerformance / count : 0;
     });
 
-    // Sort classes by their overall average performance in descending order
-    const sortedClasses = Array.from(allClasses).sort((a, b) => classOverallAverages[b] - classOverallAverages[a]);
+    // Sort classes by their overall average performance in ascending order
+    const sortedClasses = Array.from(allClasses).sort((a, b) => classOverallAverages[a] - classOverallAverages[b]);
     const sortedTimeLabels = actualTimeLabelsToProcess.sort();
 
     const datasets = sortedTimeLabels.map((time, index) => {
@@ -1605,6 +1663,43 @@ function setupEventListeners() {
     const csvTooltip = document.getElementById('csvTooltip');
     ['focus', 'mouseover'].forEach(event => csvUpload.addEventListener(event, () => csvTooltip.classList.add('tooltip-visible')));
     ['blur', 'mouseout'].forEach(event => csvUpload.addEventListener(event, () => csvTooltip.classList.remove('tooltip-visible')));
+    
+    const dropZone = document.getElementById('drop-zone');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    if (dropZone) {
+        dropZone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                csvUpload.files = files;
+                const event = new Event('change', { bubbles: true });
+                csvUpload.dispatchEvent(event);
+            }
+        });
+    }
+
     csvUpload.addEventListener('change', handleFileUpload);
 
     // Report Modal Listeners
@@ -1623,6 +1718,14 @@ function setupEventListeners() {
 
 
     document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+
+    document.getElementById('confirmReloadBtn').addEventListener('click', () => {
+        location.reload();
+    });
+
+    document.getElementById('cancelOverwriteBtn').addEventListener('click', () => {
+        document.getElementById('fileOverwriteModal').classList.add('hidden');
+    });
 }
 function setupIntersectionObserver() {
     const filtersContainer = document.getElementById('filtersContainer');
@@ -1846,18 +1949,86 @@ function updateApprovedSubjectsByClassTable(students) {
 
 
 
-const exportChart = (chartId, filename) => {
-    const link = Object.assign(document.createElement('a'), {
-        href: document.getElementById(chartId).toDataURL('image/png'),
-        download: filename
-    });
-    link.click();
+const exportChart = async (chartId, filename) => {
+    const chartCanvas = document.getElementById(chartId);
+    if (!chartCanvas) {
+        console.error(`Chart with id ${chartId} not found.`);
+        alert('لم يتم العثور على المخطط للتصدير.');
+        return;
+    }
+
+    // Find the container that holds the title, description, and chart.
+    const chartContainer = chartCanvas.closest('.bg-white');
+
+    if (!chartContainer) {
+        console.error(`Container for chart ${chartId} not found.`);
+        alert('لم يتم العثور على حاوية المخطط للتصدير.');
+        return;
+    }
+
+    // Temporarily hide the export buttons within the container to not include them in the capture
+    const buttonsContainer = chartCanvas.nextElementSibling;
+    if (buttonsContainer && buttonsContainer.tagName === 'DIV') {
+        buttonsContainer.style.visibility = 'hidden';
+    }
+
+    try {
+        // Use html2canvas to capture the container
+        const canvas = await html2canvas(chartContainer, {
+            scale: 2, // Increase scale for better resolution
+            backgroundColor: '#ffffff', // Explicitly set background to white
+            logging: false,
+            useCORS: true,
+            onclone: (document) => {
+                // Ensure the canvas in the cloned document has a defined size, otherwise it might be captured with 0 height
+                const clonedCanvas = document.getElementById(chartId);
+                if (clonedCanvas && chartCanvas.height > 0) {
+                    clonedCanvas.style.height = `${chartCanvas.height}px`;
+                }
+            }
+        });
+
+        // Create a link and trigger the download
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error('Error exporting chart with html2canvas:', error);
+        alert('حدث خطأ أثناء تصدير المخطط.');
+    } finally {
+        // Make the buttons visible again
+        if (buttonsContainer && buttonsContainer.tagName === 'DIV') {
+            buttonsContainer.style.visibility = 'visible';
+        }
+    }
 };
 
 const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const statusMsg = document.getElementById('csvStatusMsg');
-    if (!file) return;
+    const fileNameDisplay = document.getElementById('file-name');
+
+    if (!file) {
+        if (allStudentsData.length === 0) {
+            fileNameDisplay.textContent = '';
+            document.getElementById('maxScoreInput').disabled = true; // Disable if no file
+            document.getElementById('maxScoreInput').value = ''; // Clear value
+            document.getElementById('analyzeBtn').disabled = true; // Disable analyze button
+        }
+        return;
+    }
+
+    if (allStudentsData.length > 0) {
+        document.getElementById('fileOverwriteModal').classList.remove('hidden');
+        e.target.value = null;
+        return;
+    }
+
+    fileNameDisplay.textContent = file.name;
 
     const fileName = file.name.toLowerCase();
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
@@ -1867,6 +2038,8 @@ const handleFileUpload = (e) => {
 
     if (!isCsv && !isExcel) {
         displayStatusMessage(statusMsg, 'الملف يجب أن يكون بصيغة CSV أو Excel.', 'rose');
+        e.target.value = null;
+        fileNameDisplay.textContent = '';
         return;
     }
 
@@ -1877,7 +2050,11 @@ const handleFileUpload = (e) => {
             complete: (results) => {
                 processParsedData(results.data, results.meta.fields);
             },
-            error: () => displayStatusMessage(statusMsg, 'تعذر قراءة ملف CSV. تأكد من الصيغة.', 'rose')
+            error: () => {
+                displayStatusMessage(statusMsg, 'تعذر قراءة ملف CSV. تأكد من الصيغة.', 'rose');
+                e.target.value = null;
+                fileNameDisplay.textContent = '';
+            }
         });
     } else if (isExcel) {
         const reader = new FileReader();
@@ -1891,6 +2068,8 @@ const handleFileUpload = (e) => {
 
                 if (jsonData.length === 0) {
                     displayStatusMessage(statusMsg, 'ملف Excel فارغ أو لا يمكن قراءته.', 'rose');
+                    e.target.value = null;
+                    fileNameDisplay.textContent = '';
                     return;
                 }
                 const headers = Object.keys(jsonData[0]);
@@ -1898,10 +2077,14 @@ const handleFileUpload = (e) => {
             } catch (err) {
                 console.error("Error processing Excel file:", err);
                 displayStatusMessage(statusMsg, 'حدث خطأ أثناء معالجة ملف Excel.', 'rose');
+                e.target.value = null;
+                fileNameDisplay.textContent = '';
             }
         };
         reader.onerror = () => {
             displayStatusMessage(statusMsg, 'تعذر قراءة ملف Excel.', 'rose');
+            e.target.value = null;
+            fileNameDisplay.textContent = '';
         };
         reader.readAsArrayBuffer(file);
     }
@@ -1963,12 +2146,19 @@ function processParsedData(data, headers) {
         updateApprovedSubjectsByClassTable(allStudentsData);
         
         // Enable the next step
-        // maxScoreInput is now enabled by default in index.html, no need to re-enable here.
+        const maxScoreInput = document.getElementById('maxScoreInput');
+        maxScoreInput.disabled = false; // Enable the input field
         displayStatusMessage(statusMsg, 'تم رفع الملف. أدخل الدرجة النهائية ثم اضغط "تحليل النتائج".', 'teal', 8000);
 
     } catch (err) {
         console.error("Error processing data:", err);
         displayStatusMessage(statusMsg, 'حدث خطأ أثناء معالجة البيانات.', 'rose');
+        // If processing fails, disable maxScoreInput and clear file input
+        document.getElementById('maxScoreInput').disabled = true;
+        document.getElementById('maxScoreInput').value = '';
+        document.getElementById('analyzeBtn').disabled = true; // Disable analyze button
+        document.getElementById('csvUpload').value = null;
+        document.getElementById('file-name').textContent = '';
     }
 }
 
@@ -2537,6 +2727,10 @@ function updateFilterOptions() {
 
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+
+    // Disable analyze button and maxScoreInput initially
+    document.getElementById('maxScoreInput').disabled = true;
+    document.getElementById('analyzeBtn').disabled = true;
 
     // Do not run updateDashboard on load, wait for user action
 

@@ -82,6 +82,8 @@
 
 body {
     font-family: 'Cairo', sans-serif;
+   
+    
 }
 .chart-container {
     position: relative;
@@ -182,4 +184,26 @@ body {
 /* لون خلفية مخصص لفئة "مُكمّل" في القائمة المنسدلة للفئات */
 .multi-select-dropdown input[value="مُكمّل"]:checked + span {
     font-weight: bold;
+}
+
+/* Sticky header for student table */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10; /* Ensure it stays above scrolling content */
+}
+
+.sticky-header th {
+    background-color: #0d9488 !important; /* Tailwind's teal-600 */
+    color: #ffffff !important; /* White text for contrast */
+}
+
+.table-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#drop-zone.drag-over {
+    border-color: #14b8a6; /* teal-500 */
+    background-color: #f0fdfa; /* teal-50 */
 }
