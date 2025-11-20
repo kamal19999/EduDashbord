@@ -27,17 +27,24 @@
 
      <header class="bg-[#006666] text-white shadow-lg">
         <div class="container mx-auto px-4 py-2 flex justify-between items-center">
-             <a href="index.html">
-             <img src="./img/favicon1.png" alt="شعار الموقع" style="height:40px; width:auto;">
-             </a>
-
-            <h1 class="text-2xl font-bold">EduDashboard</h1>
-            <button id="helpBtn" class="group flex items-center gap-2 px-3 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm hover:shadow-md hover:bg-white/30 transition-all duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white transition-colors">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                </svg>
-                <span class="text-sm font-medium text-white transition-colors">تعليمات</span>
-            </button>
+            <div class="flex items-center gap-4">
+                <a href="index.html">
+                    <img src="./img/favicon1.png" alt="شعار الموقع" style="height:40px; width:auto;">
+                </a>
+                <h1 class="text-2xl font-bold">EduDashboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="installAppBtn" class="hidden group flex items-center gap-2 px-3 py-2 bg-green-500/80 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm hover:shadow-md hover:bg-green-500/100 transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                    <span class="text-sm font-medium text-white">تثبيت التطبيق</span>
+                </button>
+                <button id="helpBtn" class="group flex items-center gap-2 px-3 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm hover:shadow-md hover:bg-white/30 transition-all duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white transition-colors">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                    <span class="text-sm font-medium text-white transition-colors">تعليمات</span>
+                </button>
+            </div>
         </div>
         
     </header>
@@ -761,9 +768,6 @@
     </button>
 
 
-    <!-- Vercel Analytics -->
-    <script defer src="/_vercel/insights/script.js"></script>
-
     <script src="main.js"></script>
 
       <script>
@@ -772,6 +776,65 @@
       .then(() => console.log("Service Worker registered"))
       .catch(err => console.error("Service Worker failed:", err));
      }
+
+     // --- شيفرة زر التثبيت المخصص ---
+     let deferredPrompt;
+     const installBtn = document.getElementById('installAppBtn');
+
+     if (installBtn) {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // منع المتصفح من إظهار نافذة التثبيت الصغيرة تلقائياً
+            e.preventDefault();
+            // تخزين الحدث لاستخدامه لاحقاً
+            deferredPrompt = e;
+            // إظهار زر التثبيت المخصص الخاص بنا
+            installBtn.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) {
+                return;
+            }
+            // إظهار نافذة التثبيت الأصلية للمتصفح
+            deferredPrompt.prompt();
+            // لم يعد الحدث صالحاً بعد استخدامه مرة واحدة
+            deferredPrompt = null;
+            // إخفاء الزر بعد محاولة التثبيت
+            installBtn.classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+        });
+     }
+
+     // --- Conditional Vercel Analytics Loading ---
+     let vercelAnalyticsLoaded = false;
+
+     function loadVercelAnalytics() {
+         // حمل السكريبت فقط إذا كان هناك اتصال بالإنترنت ولم يتم تحميله بعد
+         if (navigator.onLine && !vercelAnalyticsLoaded) {
+             const script = document.createElement('script');
+             script.src = "/_vercel/insights/script.js";
+             script.defer = true; // للحفاظ على سلوك التحميل المؤجل
+             script.onload = () => {
+                 vercelAnalyticsLoaded = true;
+                 console.log("Vercel Analytics script loaded successfully.");
+             };
+             script.onerror = () => {
+                 console.error("Failed to load Vercel Analytics script.");
+             };
+             document.head.appendChild(script); // أضف السكريبت إلى <head>
+         } else if (!navigator.onLine) {
+             console.log("Offline: Vercel Analytics script not loaded.");
+         }
+     }
+
+     // حاول تحميل Analytics عند تحميل الصفحة لأول مرة
+     loadVercelAnalytics();
+
+     // استمع لتغيرات حالة الاتصال بالإنترنت وحاول التحميل إذا أصبح متصلاً
+     window.addEventListener('online', loadVercelAnalytics);
     </script>
 
     <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[100]">

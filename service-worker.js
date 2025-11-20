@@ -1,8 +1,9 @@
-const CACHE_NAME = "edu-dashboard-cache-v4"; // غيّر الرقم عند كل تحديث
+const CACHE_NAME = "edu-dashboard-cache-v5"; // غيّر الرقم عند كل تحديث
 const urlsToCache = [
   "./index.html",
   "./styles.css",
   "./main.js",
+  "./welcome.html",
 
   // مكتبات JavaScript
   // "./libs/tailwind-browser.js",
@@ -30,7 +31,9 @@ const urlsToCache = [
    "./fonts/Tajawal-Regular-latin.woff2",
 
   // الأيقونة
-  "./img/favicon1.png"
+  "./img/favicon1.png",
+  "./img/192.png",
+  "./img/512.png"
 ];
 
 // تثبيت Service Worker وتخزين الملفات مع كشف الأخطاء
